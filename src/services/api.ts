@@ -30,6 +30,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      const skipRedirect = error.config?.headers?.['X-Skip-Auth-Redirect'] === 'true';
+      if (skipRedirect) {
+        return Promise.reject(error);
+      }
       localStorage.removeItem('vap_token');
       localStorage.removeItem('vap_user');
       // Redirect to login if appropriate (optional check)
