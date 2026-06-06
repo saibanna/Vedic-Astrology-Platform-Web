@@ -1,0 +1,257 @@
+/* VedaAstro Cosmic Design System */
+
+@layer base, components, utilities;
+
+@layer base {
+  :root {
+    /* Cosmic Palette */
+    --color-space-deep: #05060f;
+    --color-space-sky: #0a0c1a;
+    --color-indigo-glow: rgba(99, 102, 241, 0.15);
+    --color-gold-glow: rgba(212, 175, 55, 0.2);
+    
+    /* Semantic Colors */
+    --color-primary: #05060f;
+    --color-accent-gold: #d4af37;
+    --color-accent-gold-light: #f3e5ab;
+    --color-text-main: #f3f4f6;
+    --color-text-muted: #9ca3af;
+    --color-border-gold: rgba(212, 175, 55, 0.25);
+    --color-border-glass: rgba(255, 255, 255, 0.07);
+    --color-bg-glass: rgba(13, 15, 33, 0.65);
+    --color-bg-glass-hover: rgba(20, 22, 45, 0.8);
+    
+    /* Typography */
+    --font-sans: 'Outfit', sans-serif;
+    --font-heading: 'Cinzel', serif;
+    
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--color-space-deep);
+    background-image: 
+      radial-gradient(circle at 10% 20%, var(--color-indigo-glow) 0%, transparent 40%),
+      radial-gradient(circle at 90% 80%, var(--color-indigo-glow) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, var(--color-space-sky) 0%, var(--color-space-deep) 100%);
+    background-attachment: fixed;
+    color: var(--color-text-main);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    color: #ffffff;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+
+  a {
+    color: var(--color-accent-gold);
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+
+  a:hover {
+    color: var(--color-accent-gold-light);
+  }
+
+  input, select, textarea, button {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-space-deep);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-gold);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-gold);
+}
+
+@layer components {
+  /* Layout Grid & Container */
+  .layout-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+    width: 100%;
+  }
+
+  /* Cosmic Card (Glassmorphism) */
+  .cosmic-card {
+    background: var(--color-bg-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border-glass);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cosmic-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--color-accent-gold), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .cosmic-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--color-border-gold);
+    background: var(--color-bg-glass-hover);
+    box-shadow: 0 12px 40px 0 var(--color-indigo-glow);
+  }
+
+  .cosmic-card:hover::before {
+    opacity: 1;
+  }
+
+  /* Gold Button */
+  .btn-gold {
+    background: linear-gradient(135deg, #b38f1d 0%, #d4af37 50%, #f3e5ab 100%);
+    color: #05060f;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px var(--color-gold-glow);
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+    filter: brightness(1.1);
+  }
+
+  .btn-gold:active {
+    transform: translateY(0);
+  }
+
+  .btn-gold:disabled {
+    background: var(--color-text-muted);
+    color: var(--color-space-deep);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* Glass Outline Button */
+  .btn-outline {
+    background: transparent;
+    color: var(--color-text-main);
+    border: 1px solid var(--color-border-gold);
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-outline:hover {
+    background: rgba(212, 175, 55, 0.1);
+    border-color: var(--color-accent-gold);
+    color: #ffffff;
+  }
+
+  /* Form Inputs styling */
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+    text-align: left;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-accent-gold-light);
+    letter-spacing: 0.03em;
+  }
+
+  .form-input {
+    background: rgba(5, 6, 15, 0.8);
+    border: 1px solid var(--color-border-glass);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--color-accent-gold);
+    box-shadow: 0 0 8px var(--color-gold-glow);
+    background: var(--color-space-deep);
+  }
+}
+
+/* Animations helper */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 40s linear infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s ease-in-out infinite;
+}
