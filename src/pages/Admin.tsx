@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Compass, LineChart, ShieldAlert, Award, Calendar, CircleDollarSign, Terminal, Send, Play } from 'lucide-react';
+import { Compass, LineChart, ShieldAlert, Award, Calendar, CircleDollarSign, Terminal, Send, Play, FileJson, Eye } from 'lucide-react';
 import { api } from '../services/api';
+import { KundaliChart } from '../components/KundaliChart';
 
 export const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'analytics' | 'api-explorer'>('analytics');
@@ -88,6 +89,8 @@ export const Admin: React.FC = () => {
   const [responseStatus, setResponseStatus] = useState<number | null>(null);
   const [responseHeaders, setResponseHeaders] = useState<string>('');
   const [responseBody, setResponseBody] = useState<string>('');
+  const [responseData, setResponseData] = useState<any>(null);
+  const [responseViewTab, setResponseViewTab] = useState<'json' | 'visual'>('json');
 
   const handleSelectEndpoint = (idx: number) => {
     setSelectedIdx(idx);
@@ -95,6 +98,8 @@ export const Admin: React.FC = () => {
     setMethod(ep.method);
     setUrlPath(ep.path);
     setPayload(ep.defaultPayload);
+    setResponseData(null);
+    setResponseViewTab('json');
   };
 
   const handleExecuteRequest = async (e: React.FormEvent) => {
@@ -103,6 +108,7 @@ export const Admin: React.FC = () => {
     setResponseStatus(null);
     setResponseBody('');
     setResponseHeaders('');
+    setResponseData(null);
 
     try {
       let res;
@@ -129,11 +135,23 @@ export const Admin: React.FC = () => {
       setResponseStatus(res.status);
       setResponseBody(JSON.stringify(res.data, null, 2));
       setResponseHeaders(JSON.stringify(res.headers, null, 2));
+      
+      const finalData = res.data && res.data.data ? res.data.data : res.data;
+      setResponseData(finalData);
+
+      if (finalData && finalData.lagna && finalData.planets) {
+        setResponseViewTab('visual');
+      } else {
+        setResponseViewTab('json');
+      }
     } catch (err: any) {
       console.error(err);
       setResponseStatus(err.response?.status || 500);
-      setResponseBody(JSON.stringify(err.response?.data || { error: err.message }, null, 2));
+      const errData = err.response?.data || { error: err.message };
+      setResponseBody(JSON.stringify(errData, null, 2));
       setResponseHeaders(JSON.stringify(err.response?.headers || {}, null, 2));
+      setResponseData(null);
+      setResponseViewTab('json');
     } finally {
       setExecuting(false);
     }
@@ -442,7 +460,7 @@ export const Admin: React.FC = () => {
                     overflow: 'auto',
                     fontSize: '0.8rem',
                     fontFamily: 'monospace',
-                    maxHeight: '120px',
+                    maxHeight: '100px',
                     color: '#a78bfa',
                     textAlign: 'left'
                   }}>
@@ -451,23 +469,113 @@ export const Admin: React.FC = () => {
                 </div>
 
                 {/* Body Box */}
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', color: 'var(--color-accent-gold-light)' }}>Response JSON Payload</h4>
-                  <pre style={{
-                    background: 'rgba(5, 6, 15, 0.9)',
-                    border: '1px solid var(--color-border-glass)',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    margin: 0,
-                    overflow: 'auto',
-                    fontSize: '0.85rem',
-                    fontFamily: 'monospace',
-                    color: '#67e8f9',
-                    height: '380px',
-                    textAlign: 'left'
-                  }}>
-                    {responseBody}
-                  </pre>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-accent-gold-light)' }}>Response Body</h4>
+                    {responseData && responseData.lagna && responseData.planets && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setResponseViewTab('json')}
+                          style={{
+                            background: responseViewTab === 'json' ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)',
+                            border: `1px solid ${responseViewTab === 'json' ? 'var(--color-accent-gold)' : 'var(--color-border-glass)'}`,
+                            borderRadius: '6px',
+                            padding: '4px 10px',
+                            color: responseViewTab === 'json' ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <FileJson size={12} /> JSON
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setResponseViewTab('visual')}
+                          style={{
+                            background: responseViewTab === 'visual' ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)',
+                            border: `1px solid ${responseViewTab === 'visual' ? 'var(--color-accent-gold)' : 'var(--color-border-glass)'}`,
+                            borderRadius: '6px',
+                            padding: '4px 10px',
+                            color: responseViewTab === 'visual' ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <Eye size={12} /> Kundali Chart
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {responseViewTab === 'visual' && responseData && responseData.lagna && responseData.planets ? (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px',
+                      background: 'rgba(5, 6, 15, 0.4)',
+                      border: '1px solid var(--color-border-glass)',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      maxHeight: '480px',
+                      overflowY: 'auto'
+                    }}>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '10px'
+                      }}>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Lagna</span>
+                          <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.lagna}</p>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Janma Nakshatra</span>
+                          <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.nakshatra || 'Ashwini'}</p>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Moon Sign</span>
+                          <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.moonSign || 'N/A'}</p>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Sun Sign</span>
+                          <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.sunSign || 'N/A'}</p>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <div style={{ width: '100%', maxWidth: '280px' }}>
+                          <KundaliChart lagna={responseData.lagna} planets={responseData.planets} />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <pre style={{
+                      background: 'rgba(5, 6, 15, 0.9)',
+                      border: '1px solid var(--color-border-glass)',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      margin: 0,
+                      overflow: 'auto',
+                      fontSize: '0.85rem',
+                      fontFamily: 'monospace',
+                      color: '#67e8f9',
+                      height: '380px',
+                      textAlign: 'left'
+                    }}>
+                      {responseBody}
+                    </pre>
+                  )}
                 </div>
 
               </div>

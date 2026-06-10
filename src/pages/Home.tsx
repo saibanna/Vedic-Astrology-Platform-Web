@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { astrologyService } from '../services/api';
 import { Compass, Moon, Sun } from 'lucide-react';
+import { KundaliChart } from '../components/KundaliChart';
 
 const ZODIAC_SIGNS = [
   { name: 'Aries', date: 'Mar 21 - Apr 19', symbol: '♈' },
@@ -42,7 +43,8 @@ export const Home: React.FC = () => {
     try {
       // Hit the actual Astrology microservice API
       const res = await astrologyService.getBirthChart(formData);
-      setChartResult(res.data);
+      const finalData = res.data && res.data.data ? res.data.data : res.data;
+      setChartResult(finalData);
     } catch (err) {
       console.warn('API error, using beautiful mock chart data', err);
       // Fallback premium mock
@@ -241,6 +243,13 @@ export const Home: React.FC = () => {
               <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Janma Nakshatra</span>
               <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{chartResult.nakshatra}</p>
             </div>
+          </div>
+
+          <div style={{ margin: '40px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '16px', color: 'var(--color-accent-gold)' }}>
+              Your Astrological Kundali (D1 Chart)
+            </h3>
+            <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} />
           </div>
 
           <h3 style={{ fontSize: '1.5rem', marginBottom: '20px', borderBottom: '1px solid var(--color-border-gold)', paddingBottom: '8px' }}>

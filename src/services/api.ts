@@ -1,7 +1,23 @@
 import axios from 'axios';
 
-// Default to the Hostinger Gateway deployed IP, or read from env variables if set
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://76.13.244.69:8080';
+// Resolve the API Base URL dynamically
+const getApiBaseUrl = (): string => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // For local development
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:8080';
+    }
+    // When deployed, use the same host and port (e.g. port 80) to proxy through Nginx
+    return window.location.origin;
+  }
+  return 'http://76.13.244.69:8080';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // API Instance for general endpoints
 export const api = axios.create({
