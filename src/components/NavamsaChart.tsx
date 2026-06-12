@@ -47,8 +47,7 @@ export const NavamsaChart: React.FC<NavamsaChartProps> = ({ navamsaLagna, planet
   }
 
   planets.forEach(p => {
-    // Filter out Lagna and map by navamsaHouse placement
-    if (p.name !== 'Ascendant (Lagna)' && p.navamsaHouse >= 1 && p.navamsaHouse <= 12) {
+    if (p.navamsaHouse >= 1 && p.navamsaHouse <= 12) {
       planetsByHouse[p.navamsaHouse].push(p);
     }
   });

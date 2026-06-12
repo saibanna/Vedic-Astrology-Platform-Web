@@ -5,6 +5,7 @@ interface Planet {
   sign: string;
   degree: string;
   house: number;
+  retrograde?: boolean;
 }
 
 interface KundaliChartProps {
@@ -48,8 +49,7 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, show
   }
 
   planets.forEach(p => {
-    // Map planet names to simple displays, ignore "Ascendant (Lagna)" as it's already used for house 1 calculation
-    if (p.name !== 'Ascendant (Lagna)' && p.house >= 1 && p.house <= 12) {
+    if (p.house >= 1 && p.house <= 12) {
       planetsByHouse[p.house].push(p);
     }
   });
@@ -125,7 +125,7 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, show
                     dominantBaseline="middle"
                     style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.8))' }}
                   >
-                    {housePlanets.map(p => PLANET_ABBR[p.name] || p.name).join(', ')}
+                    {housePlanets.map(p => (PLANET_ABBR[p.name] || p.name) + (p.retrograde ? '(R)' : '')).join(', ')}
                   </text>
                 )}
               </g>

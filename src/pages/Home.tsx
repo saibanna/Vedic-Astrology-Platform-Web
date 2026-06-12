@@ -380,6 +380,7 @@ export const Home: React.FC = () => {
                   <th style={{ padding: '12px' }}>Zodiac Sign</th>
                   <th style={{ padding: '12px' }}>Degree</th>
                   <th style={{ padding: '12px' }}>House Placement</th>
+                  <th style={{ padding: '12px' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -389,6 +390,11 @@ export const Home: React.FC = () => {
                     <td style={{ padding: '12px' }}>{planet.sign}</td>
                     <td style={{ padding: '12px' }}>{planet.degree}</td>
                     <td style={{ padding: '12px' }}>{planet.house} House</td>
+                    <td style={{ padding: '12px' }}>
+                      {planet.retrograde && (
+                        <span style={{ color: '#ff7043', fontWeight: 700, fontSize: '0.85rem' }}>⟲ (R)</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
