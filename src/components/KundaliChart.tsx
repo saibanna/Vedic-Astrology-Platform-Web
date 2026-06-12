@@ -10,6 +10,7 @@ interface Planet {
 interface KundaliChartProps {
   lagna: string;
   planets: Planet[];
+  showLegend?: boolean;
 }
 
 const SIGN_MAP: Record<string, number> = {
@@ -30,7 +31,7 @@ const PLANET_ABBR: Record<string, string> = {
   'Ketu': 'Ke'
 };
 
-export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets }) => {
+export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, showLegend = true }) => {
   const lagnaSignNum = SIGN_MAP[lagna] || 1;
 
   // Calculate the sign number for each of the 12 houses (1-indexed house positions)
@@ -70,7 +71,7 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets }) =>
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', margin: '20px 0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', margin: '10px 0' }}>
       <div style={{
         background: 'radial-gradient(circle at center, #0c0f24, #05060f)',
         border: '3px solid var(--color-border-gold)',
@@ -132,13 +133,15 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets }) =>
           })}
         </svg>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-        {Object.entries(PLANET_ABBR).map(([fullName, abbr]) => (
-          <span key={abbr} style={{ background: 'rgba(255,255,255,0.03)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--color-border-glass)' }}>
-            <strong>{abbr}</strong>: {fullName.replace(' (Lagna)', '').replace(' (Chandra)', '').replace(' (Surya)', '').replace(' (Mangal)', '').replace(' (Budh)', '').replace(' (Guru)', '').replace(' (Shukra)', '').replace(' (Shani)', '')}
-          </span>
-        ))}
-      </div>
+      {showLegend && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+          {Object.entries(PLANET_ABBR).map(([fullName, abbr]) => (
+            <span key={abbr} style={{ background: 'rgba(255,255,255,0.03)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--color-border-glass)' }}>
+              <strong>{abbr}</strong>: {fullName.replace(' (Lagna)', '').replace(' (Chandra)', '').replace(' (Surya)', '').replace(' (Mangal)', '').replace(' (Budh)', '').replace(' (Guru)', '').replace(' (Shukra)', '').replace(' (Shani)', '')}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

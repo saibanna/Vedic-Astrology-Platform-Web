@@ -562,34 +562,61 @@ export const Admin: React.FC = () => {
                       background: 'rgba(5, 6, 15, 0.4)',
                       border: '1px solid var(--color-border-glass)',
                       borderRadius: '12px',
-                      padding: '16px',
-                      maxHeight: '480px',
+                      padding: '20px',
+                      flex: 1,
+                      minHeight: '480px',
                       overflowY: 'auto'
                     }}>
                       {/* Combined Chart & Dasha Render */}
                       {responseData.lagna && responseData.navamsaChart && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
                           <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
                             gap: '20px',
                             alignItems: 'start'
                           }}>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                              <h5 style={{ color: 'var(--color-accent-gold)', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Rasi D1 Chart</h5>
-                              <div style={{ width: '100%', maxWidth: '240px' }}>
-                                <KundaliChart lagna={responseData.lagna} planets={responseData.planets} />
+                              <h5 style={{ color: 'var(--color-accent-gold)', marginBottom: '4px', fontSize: '0.9rem', fontWeight: 'bold' }}>Rasi D1 Chart</h5>
+                              <div style={{ width: '100%', maxWidth: '340px' }}>
+                                <KundaliChart lagna={responseData.lagna} planets={responseData.planets} showLegend={false} />
                               </div>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                              <h5 style={{ color: 'var(--color-accent-gold)', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Navamsa D-9 Chart</h5>
-                              <div style={{ width: '100%', maxWidth: '240px' }}>
+                              <h5 style={{ color: 'var(--color-accent-gold)', marginBottom: '4px', fontSize: '0.9rem', fontWeight: 'bold' }}>Navamsa D-9 Chart</h5>
+                              <div style={{ width: '100%', maxWidth: '340px' }}>
                                 <NavamsaChart 
                                   navamsaLagna={responseData.navamsaChart.navamsaLagna} 
                                   planets={responseData.navamsaChart.planets} 
+                                  showLegend={false}
                                 />
                               </div>
                             </div>
+                          </div>
+
+                          {/* Shared Legend */}
+                          <div style={{ 
+                            display: 'flex', 
+                            flexWrap: 'wrap', 
+                            justifyContent: 'center', 
+                            gap: '10px', 
+                            fontSize: '0.75rem', 
+                            color: 'var(--color-text-muted)',
+                            background: 'rgba(255, 255, 255, 0.01)',
+                            border: '1px solid var(--color-border-glass)',
+                            borderRadius: '8px',
+                            padding: '8px 12px',
+                            margin: '5px 0'
+                          }}>
+                            {Object.entries({
+                              'Asc': 'Ascendant', 'Su': 'Sun', 'Mo': 'Moon', 'Ma': 'Mars', 
+                              'Me': 'Mercury', 'Ju': 'Jupiter', 'Ve': 'Venus', 'Sa': 'Saturn', 
+                              'Ra': 'Rahu', 'Ke': 'Ketu'
+                            }).map(([abbr, fullName]) => (
+                              <span key={abbr} style={{ background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: '4px' }}>
+                                <strong>{abbr}</strong>: {fullName}
+                              </span>
+                            ))}
                           </div>
 
                           {responseData.dashaPeriods && (
@@ -611,7 +638,7 @@ export const Admin: React.FC = () => {
                       {responseData.navamsaLagna && responseData.planets && (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                           <h4 style={{ color: 'var(--color-accent-gold)', marginBottom: '10px' }}>Navamsa D-9 Chart</h4>
-                          <div style={{ width: '100%', maxWidth: '280px' }}>
+                          <div style={{ width: '100%', maxWidth: '340px' }}>
                             <NavamsaChart navamsaLagna={responseData.navamsaLagna} planets={responseData.planets} />
                           </div>
                         </div>
@@ -658,7 +685,7 @@ export const Admin: React.FC = () => {
                           </div>
 
                           <div style={{ display: 'flex', justifyContent: 'center' }}>
-                            <div style={{ width: '100%', maxWidth: '280px' }}>
+                            <div style={{ width: '100%', maxWidth: '340px' }}>
                               <KundaliChart lagna={responseData.lagna} planets={responseData.planets} />
                             </div>
                           </div>
