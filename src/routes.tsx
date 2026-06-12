@@ -10,6 +10,8 @@ import { Consultation } from './pages/Consultation';
 import { Remedies } from './pages/Remedies';
 import { Login } from './pages/Login';
 import { Admin } from './pages/Admin';
+import { NavamsaChart } from './pages/NavamsaChart';
+import { Dasha } from './pages/Dasha';
 
 // Protected Route Component for General Users
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -31,6 +33,8 @@ export const AppRoutes: React.FC = () => {
         <Route path="/" element={<Home />} />
         <Route path="/astrologers" element={<Astrologers />} />
         <Route path="/remedies" element={<Remedies />} />
+        <Route path="/navamsa" element={<NavamsaChart />} />
+        <Route path="/dasha" element={<Dasha />} />
         <Route path="/login" element={<Login />} />
 
         {/* Protected Client Routes */}

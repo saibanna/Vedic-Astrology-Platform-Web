@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Compass, LineChart, ShieldAlert, Award, Calendar, CircleDollarSign, Terminal, Send, Play, FileJson, Eye } from 'lucide-react';
 import { api } from '../services/api';
 import { KundaliChart } from '../components/KundaliChart';
+import { NavamsaChart } from '../components/NavamsaChart';
+import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
 
 export const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'analytics' | 'api-explorer'>('analytics');
@@ -28,6 +30,30 @@ export const Admin: React.FC = () => {
       path: '/api/v1/astrology/birth-chart',
       method: 'POST',
       description: 'Generates planetary house coordinates and placements based on birth details.',
+      defaultPayload: JSON.stringify({
+        name: "Test Admin",
+        dob: "1995-11-12",
+        tob: "08:12",
+        pob: "Mumbai, India"
+      }, null, 2)
+    },
+    {
+      name: 'Get Navamsa Chart (D-9)',
+      path: '/api/v1/astrology/navamsa-chart',
+      method: 'POST',
+      description: 'Calculates the D-9 divisional Navamsa chart coordinates and house placements.',
+      defaultPayload: JSON.stringify({
+        name: "Test Admin",
+        dob: "1995-11-12",
+        tob: "08:12",
+        pob: "Mumbai, India"
+      }, null, 2)
+    },
+    {
+      name: 'Get Dasha Periods',
+      path: '/api/v1/astrology/dasha',
+      method: 'POST',
+      description: 'Calculates the Vimshottari Mahadasha and Bhukti planetary periods.',
       defaultPayload: JSON.stringify({
         name: "Test Admin",
         dob: "1995-11-12",
@@ -139,7 +165,12 @@ export const Admin: React.FC = () => {
       const finalData = res.data && res.data.data ? res.data.data : res.data;
       setResponseData(finalData);
 
-      if (finalData && finalData.lagna && finalData.planets) {
+      if (finalData && (
+        (finalData.lagna && finalData.planets) ||
+        (finalData.navamsaLagna && finalData.planets) ||
+        finalData.dashas ||
+        (finalData.lagna && finalData.navamsaChart)
+      )) {
         setResponseViewTab('visual');
       } else {
         setResponseViewTab('json');
@@ -472,7 +503,12 @@ export const Admin: React.FC = () => {
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <h4 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-accent-gold-light)' }}>Response Body</h4>
-                    {responseData && responseData.lagna && responseData.planets && (
+                    {responseData && (
+                      (responseData.lagna && responseData.planets) ||
+                      (responseData.navamsaLagna && responseData.planets) ||
+                      responseData.dashas ||
+                      (responseData.lagna && responseData.navamsaChart)
+                    ) && (
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           type="button"
@@ -512,13 +548,13 @@ export const Admin: React.FC = () => {
                             transition: 'all 0.2s ease'
                           }}
                         >
-                          <Eye size={12} /> Kundali Chart
+                          <Eye size={12} /> Visual
                         </button>
                       </div>
                     )}
                   </div>
 
-                  {responseViewTab === 'visual' && responseData && responseData.lagna && responseData.planets ? (
+                  {responseViewTab === 'visual' && responseData ? (
                     <div style={{
                       display: 'flex',
                       flexDirection: 'column',
@@ -530,34 +566,104 @@ export const Admin: React.FC = () => {
                       maxHeight: '480px',
                       overflowY: 'auto'
                     }}>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(2, 1fr)',
-                        gap: '10px'
-                      }}>
-                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
-                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Lagna</span>
-                          <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.lagna}</p>
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
-                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Janma Nakshatra</span>
-                          <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.nakshatra || 'Ashwini'}</p>
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
-                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Moon Sign</span>
-                          <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.moonSign || 'N/A'}</p>
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
-                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Sun Sign</span>
-                          <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.sunSign || 'N/A'}</p>
-                        </div>
-                      </div>
+                      {/* Combined Chart & Dasha Render */}
+                      {responseData.lagna && responseData.navamsaChart && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                            gap: '20px',
+                            alignItems: 'start'
+                          }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                              <h5 style={{ color: 'var(--color-accent-gold)', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Rasi D1 Chart</h5>
+                              <div style={{ width: '100%', maxWidth: '240px' }}>
+                                <KundaliChart lagna={responseData.lagna} planets={responseData.planets} />
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                              <h5 style={{ color: 'var(--color-accent-gold)', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Navamsa D-9 Chart</h5>
+                              <div style={{ width: '100%', maxWidth: '240px' }}>
+                                <NavamsaChart 
+                                  navamsaLagna={responseData.navamsaChart.navamsaLagna} 
+                                  planets={responseData.navamsaChart.planets} 
+                                />
+                              </div>
+                            </div>
+                          </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <div style={{ width: '100%', maxWidth: '280px' }}>
-                          <KundaliChart lagna={responseData.lagna} planets={responseData.planets} />
+                          {responseData.dashaPeriods && (
+                            <div style={{ borderTop: '1px solid var(--color-border-glass)', paddingTop: '16px', width: '100%' }}>
+                              <h5 style={{ color: 'var(--color-accent-gold)', marginBottom: '12px', fontSize: '0.9rem', fontWeight: 'bold' }}>Vimshottari Dasha Periods</h5>
+                              <DashaBhuktiTable 
+                                nakshatra={responseData.dashaPeriods.nakshatra}
+                                nakshatraLord={responseData.dashaPeriods.nakshatraLord}
+                                currentDasha={responseData.dashaPeriods.currentDasha}
+                                currentBhukti={responseData.dashaPeriods.currentBhukti}
+                                dashas={responseData.dashaPeriods.dashas}
+                              />
+                            </div>
+                          )}
                         </div>
-                      </div>
+                      )}
+
+                      {/* Individual Navamsa Chart Render */}
+                      {responseData.navamsaLagna && responseData.planets && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <h4 style={{ color: 'var(--color-accent-gold)', marginBottom: '10px' }}>Navamsa D-9 Chart</h4>
+                          <div style={{ width: '100%', maxWidth: '280px' }}>
+                            <NavamsaChart navamsaLagna={responseData.navamsaLagna} planets={responseData.planets} />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Individual Dasha Table Render */}
+                      {responseData.dashas && (
+                        <div>
+                          <h4 style={{ color: 'var(--color-accent-gold)', marginBottom: '10px' }}>Vimshottari Dasha Periods</h4>
+                          <DashaBhuktiTable 
+                            nakshatra={responseData.nakshatra}
+                            nakshatraLord={responseData.nakshatraLord}
+                            currentDasha={responseData.currentDasha}
+                            currentBhukti={responseData.currentBhukti}
+                            dashas={responseData.dashas}
+                          />
+                        </div>
+                      )}
+
+                      {/* Standard Rasi Chart Render (without combined sub-objects) */}
+                      {responseData.lagna && !responseData.navamsaChart && !responseData.navamsaLagna && responseData.planets && (
+                        <>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(2, 1fr)',
+                            gap: '10px'
+                          }}>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
+                              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Lagna</span>
+                              <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.lagna}</p>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
+                              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Janma Nakshatra</span>
+                              <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.nakshatra || 'Ashwini'}</p>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
+                              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Moon Sign</span>
+                              <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.moonSign || 'N/A'}</p>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-glass)' }}>
+                              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>Sun Sign</span>
+                              <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>{responseData.sunSign || 'N/A'}</p>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <div style={{ width: '100%', maxWidth: '280px' }}>
+                              <KundaliChart lagna={responseData.lagna} planets={responseData.planets} />
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <pre style={{

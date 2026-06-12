@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { astrologyService } from '../services/api';
 import { Compass, Moon, Sun } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
+import { NavamsaChart } from '../components/NavamsaChart';
+import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
 
 const ZODIAC_SIGNS = [
   { name: 'Aries', date: 'Mar 21 - Apr 19', symbol: '♈' },
@@ -29,6 +31,8 @@ export const Home: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [chartResult, setChartResult] = useState<any | null>(null);
+  const [navamsaResult, setNavamsaResult] = useState<any | null>(null);
+  const [dashaResult, setDashaResult] = useState<any | null>(null);
   const [selectedZodiac, setSelectedZodiac] = useState<string | null>(null);
   const [horoscope, setHoroscope] = useState<string | null>(null);
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
@@ -41,10 +45,16 @@ export const Home: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Hit the actual Astrology microservice API
       const res = await astrologyService.getBirthChart(formData);
       const finalData = res.data && res.data.data ? res.data.data : res.data;
-      setChartResult(finalData);
+
+      if (finalData && finalData.lagna) {
+        setChartResult(finalData);
+        setNavamsaResult(finalData.navamsaChart || null);
+        setDashaResult(finalData.dashaPeriods || null);
+      } else {
+        throw new Error("Invalid chart data");
+      }
     } catch (err) {
       console.warn('API error, using beautiful mock chart data', err);
       // Fallback premium mock
@@ -64,6 +74,81 @@ export const Home: React.FC = () => {
           { name: 'Saturn (Shani)', sign: 'Aquarius', degree: "09° 44'", house: 7 },
           { name: 'Rahu', sign: 'Pisces', degree: "18° 11'", house: 8 },
           { name: 'Ketu', sign: 'Virgo', degree: "18° 11'", house: 2 },
+        ]
+      });
+
+      setNavamsaResult({
+        navamsaLagna: 'Aries',
+        planets: [
+          { name: 'Ascendant (Lagna)', natalSign: 'Leo', navamsaSign: 'Aries', navamsaHouse: 1 },
+          { name: 'Sun (Surya)', natalSign: 'Scorpio', navamsaSign: 'Scorpio', navamsaHouse: 8 },
+          { name: 'Moon (Chandra)', natalSign: 'Aries', navamsaSign: 'Sagittarius', navamsaHouse: 9 },
+          { name: 'Mars (Mangal)', natalSign: 'Leo', navamsaSign: 'Leo', navamsaHouse: 5 },
+          { name: 'Mercury (Budh)', natalSign: 'Scorpio', navamsaSign: 'Capricorn', navamsaHouse: 10 },
+          { name: 'Jupiter (Guru)', natalSign: 'Taurus', navamsaSign: 'Gemini', navamsaHouse: 3 },
+          { name: 'Venus (Shukra)', natalSign: 'Libra', navamsaSign: 'Libra', navamsaHouse: 7 },
+          { name: 'Saturn (Shani)', natalSign: 'Aquarius', navamsaSign: 'Aquarius', navamsaHouse: 11 },
+          { name: 'Rahu', natalSign: 'Pisces', navamsaSign: 'Pisces', navamsaHouse: 12 },
+          { name: 'Ketu', natalSign: 'Virgo', navamsaSign: 'Virgo', navamsaHouse: 6 },
+        ]
+      });
+
+      const today = new Date();
+      const formatIso = (d: Date) => d.toISOString().split('T')[0];
+      
+      const ketuStart = new Date(today);
+      ketuStart.setFullYear(today.getFullYear() - 1);
+      const ketuEnd = new Date(ketuStart);
+      ketuEnd.setFullYear(ketuStart.getFullYear() + 7);
+      
+      const venusStart = new Date(ketuEnd);
+      const venusEnd = new Date(venusStart);
+      venusEnd.setFullYear(venusStart.getFullYear() + 20);
+
+      const sunStart = new Date(venusEnd);
+      const sunEnd = new Date(sunStart);
+      sunEnd.setFullYear(sunStart.getFullYear() + 6);
+
+      setDashaResult({
+        nakshatra: 'Ashwini',
+        nakshatraLord: 'Ketu',
+        currentDasha: 'Ketu',
+        currentBhukti: 'Ketu',
+        dashas: [
+          {
+            planet: 'Ketu',
+            startDate: formatIso(ketuStart),
+            endDate: formatIso(ketuEnd),
+            years: 7,
+            bhuktis: [
+              { planet: 'Ketu', startDate: formatIso(ketuStart), endDate: formatIso(new Date(ketuStart.getTime() + 100 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Venus', startDate: formatIso(new Date(ketuStart.getTime() + 100 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 300 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Sun', startDate: formatIso(new Date(ketuStart.getTime() + 300 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 380 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Moon', startDate: formatIso(new Date(ketuStart.getTime() + 380 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 500 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Mars', startDate: formatIso(new Date(ketuStart.getTime() + 500 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 600 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Rahu', startDate: formatIso(new Date(ketuStart.getTime() + 600 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 800 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Jupiter', startDate: formatIso(new Date(ketuStart.getTime() + 800 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 1000 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Saturn', startDate: formatIso(new Date(ketuStart.getTime() + 1000 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 1200 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Mercury', startDate: formatIso(new Date(ketuStart.getTime() + 1200 * 24 * 60 * 60 * 1000)), endDate: formatIso(ketuEnd) },
+            ]
+          },
+          {
+            planet: 'Venus',
+            startDate: formatIso(venusStart),
+            endDate: formatIso(venusEnd),
+            years: 20,
+            bhuktis: [
+              { planet: 'Venus', startDate: formatIso(venusStart), endDate: formatIso(new Date(venusStart.getTime() + 400 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Sun', startDate: formatIso(new Date(venusStart.getTime() + 400 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 550 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Moon', startDate: formatIso(new Date(venusStart.getTime() + 550 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 750 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Mars', startDate: formatIso(new Date(venusStart.getTime() + 750 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 900 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Rahu', startDate: formatIso(new Date(venusStart.getTime() + 900 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 1300 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Jupiter', startDate: formatIso(new Date(venusStart.getTime() + 1300 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 1700 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Saturn', startDate: formatIso(new Date(venusStart.getTime() + 1700 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 2100 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Mercury', startDate: formatIso(new Date(venusStart.getTime() + 2100 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 2500 * 24 * 60 * 60 * 1000)) },
+              { planet: 'Ketu', startDate: formatIso(new Date(venusStart.getTime() + 2500 * 24 * 60 * 60 * 1000)), endDate: formatIso(venusEnd) },
+            ]
+          }
         ]
       });
     } finally {
@@ -245,12 +330,44 @@ export const Home: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ margin: '40px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '16px', color: 'var(--color-accent-gold)' }}>
-              Your Astrological Kundali (D1 Chart)
-            </h3>
-            <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} />
+          <div style={{
+            margin: '40px 0',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '32px',
+            alignItems: 'start'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
+                Rashi Kundali (D1 Chart)
+              </h3>
+              <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} />
+            </div>
+
+            {navamsaResult && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
+                  Navamsa Kundali (D-9 Chart)
+                </h3>
+                <NavamsaChart navamsaLagna={navamsaResult.navamsaLagna} planets={navamsaResult.planets} />
+              </div>
+            )}
           </div>
+
+          {dashaResult && (
+            <div style={{ margin: '40px 0' }}>
+              <h3 style={{ fontSize: '1.6rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', borderBottom: '1px solid var(--color-border-gold)', paddingBottom: '8px' }}>
+                Vimshottari Dasha Bhukti Periods
+              </h3>
+              <DashaBhuktiTable 
+                nakshatra={dashaResult.nakshatra}
+                nakshatraLord={dashaResult.nakshatraLord}
+                currentDasha={dashaResult.currentDasha}
+                currentBhukti={dashaResult.currentBhukti}
+                dashas={dashaResult.dashas}
+              />
+            </div>
+          )}
 
           <h3 style={{ fontSize: '1.5rem', marginBottom: '20px', borderBottom: '1px solid var(--color-border-gold)', paddingBottom: '8px' }}>
             Planetary Positions

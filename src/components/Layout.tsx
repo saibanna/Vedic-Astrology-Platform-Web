@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState, logout } from '../store';
-import { Compass, Calendar, ShoppingBag, MessageSquare, ShieldAlert, LogOut, LogIn, User } from 'lucide-react';
+import { Compass, Calendar, ShoppingBag, MessageSquare, ShieldAlert, LogOut, LogIn, User, Grid3X3, Clock } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -91,6 +91,26 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               fontWeight: 500
             }}>
               <ShoppingBag size={18} /> Pujas & Remedies
+            </Link>
+
+            <Link to="/navamsa" style={{
+              color: isActive('/navamsa') ? 'var(--color-accent-gold)' : 'var(--color-text-main)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 500
+            }}>
+              <Grid3X3 size={18} /> Navamsa (D9)
+            </Link>
+
+            <Link to="/dasha" style={{
+              color: isActive('/dasha') ? 'var(--color-accent-gold)' : 'var(--color-text-main)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 500
+            }}>
+              <Clock size={18} /> Dasha
             </Link>
 
             {isAuthenticated && (

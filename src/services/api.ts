@@ -79,11 +79,21 @@ export const bookingService = {
   getBookings: () => api.get('/api/v1/bookings/me'),
 };
 
+export type AstrologyCalcInput = {
+  year: number; month: number; day: number;
+  hour: number; minute: number;
+  lat: number; lon: number; tzone: number;
+};
+
 export const astrologyService = {
   getBirthChart: (data: { name: string; dob: string; tob: string; pob: string }) => 
     api.post('/api/v1/astrology/birth-chart', data),
   getHoroscope: (zodiacSign: string) => 
     api.get(`/api/v1/astrology/horoscope?sign=${zodiacSign}`),
+  navamsaChart: (data: AstrologyCalcInput) =>
+    api.post('/api/v1/astrology/navamsa-chart', data),
+  getDasha: (data: AstrologyCalcInput) =>
+    api.post('/api/v1/astrology/dasha', data),
 };
 
 export const remedyService = {
