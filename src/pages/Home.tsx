@@ -4,6 +4,7 @@ import { Compass, Moon, Sun, MapPin } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
+import { HousePredictions } from '../components/HousePredictions';
 
 const ZODIAC_SIGNS = [
   { name: 'Aries', date: 'Mar 21 - Apr 19', symbol: '♈' },
@@ -401,6 +402,10 @@ export const Home: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div style={{ marginTop: '40px' }}>
+            <HousePredictions planets={chartResult.planets} lagna={chartResult.lagna} />
           </div>
         </section>
       )}
