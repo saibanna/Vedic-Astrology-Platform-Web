@@ -5,6 +5,7 @@ interface NavamsaPlanet {
   natalSign: string;
   navamsaSign: string;
   navamsaHouse: number;
+  retrograde?: boolean;
 }
 
 interface NavamsaChartProps {
@@ -130,7 +131,7 @@ export const NavamsaChart: React.FC<NavamsaChartProps> = ({ navamsaLagna, planet
                     dominantBaseline="middle"
                     style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.8))' }}
                   >
-                    {housePlanets.map(p => PLANET_ABBR[p.name] || p.name).join(', ')}
+                    {housePlanets.map(p => (PLANET_ABBR[p.name] || p.name) + (p.retrograde ? '(R)' : '')).join(', ')}
                   </text>
                 )}
               </g>
