@@ -5,7 +5,7 @@ import { Grid3X3 } from 'lucide-react';
 const DEFAULT_INPUT: AstrologyCalcInput = {
   year: 1990, month: 11, day: 1,
   hour: 12, minute: 0,
-  lat: 19.076, lon: 72.877, tzone: 5.5,
+  lat: 0, lon: 0, tzone: 5.5,
 };
 
 export const NavamsaChart: React.FC = () => {

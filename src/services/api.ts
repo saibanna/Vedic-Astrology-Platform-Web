@@ -85,9 +85,14 @@ export type AstrologyCalcInput = {
   lat: number; lon: number; tzone: number;
 };
 
+export type ChartFormInput = {
+  name?: string; dob: string; tob: string; pob?: string;
+  lat: number; lon: number; tzone: number;
+};
+
 export const astrologyService = {
-  getBirthChart: (data: { name: string; dob: string; tob: string; pob: string }) => 
-    api.post('/api/v1/astrology/birth-chart', data),
+  getBirthChart: (data: ChartFormInput) => 
+    api.post('/api/v1/astrology/chart', data),
   getHoroscope: (zodiacSign: string) => 
     api.get(`/api/v1/astrology/horoscope?sign=${zodiacSign}`),
   navamsaChart: (data: AstrologyCalcInput) =>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { astrologyService } from '../services/api';
-import { Compass, Moon, Sun } from 'lucide-react';
+import { Compass, Moon, Sun, MapPin } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
@@ -27,9 +27,14 @@ export const Home: React.FC = () => {
     dob: '',
     tob: '',
     pob: '',
+    lat: '',
+    lon: '',
+    tzone: '5.5'
   });
 
   const [loading, setLoading] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [chartError, setChartError] = useState<string | null>(null);
   const [chartResult, setChartResult] = useState<any | null>(null);
   const [navamsaResult, setNavamsaResult] = useState<any | null>(null);
   const [dashaResult, setDashaResult] = useState<any | null>(null);
@@ -37,123 +42,63 @@ export const Home: React.FC = () => {
   const [horoscope, setHoroscope] = useState<string | null>(null);
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const geocodePob = async () => {
+    if (!formData.pob.trim()) return;
+    setGeoLoading(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(formData.pob)}&format=json&limit=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      const data = await res.json();
+      if (data && data[0]) {
+        const { lat, lon } = data[0];
+        setFormData(f => ({ ...f, lat: parseFloat(lat).toFixed(4), lon: parseFloat(lon).toFixed(4) }));
+      } else {
+        alert('City not found. Please enter coordinates manually.');
+      }
+    } catch {
+      alert('Geocoding failed. Please enter coordinates manually.');
+    } finally {
+      setGeoLoading(false);
+    }
   };
 
   const generateKundali = async (e: React.FormEvent) => {
     e.preventDefault();
+    setChartError(null);
+
+    if (!formData.lat || !formData.lon) {
+      setChartError('Latitude and Longitude are required. Click "Lookup" to auto-fill from your city, or enter them manually.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await astrologyService.getBirthChart(formData);
-      const finalData = res.data && res.data.data ? res.data.data : res.data;
-
-      if (finalData && finalData.lagna) {
-        setChartResult(finalData);
-        setNavamsaResult(finalData.navamsaChart || null);
-        setDashaResult(finalData.dashaPeriods || null);
-      } else {
-        throw new Error("Invalid chart data");
-      }
-    } catch (err) {
-      console.warn('API error, using beautiful mock chart data', err);
-      // Fallback premium mock
-      setChartResult({
-        lagna: 'Leo',
-        moonSign: 'Aries',
-        sunSign: 'Scorpio',
-        nakshatra: 'Ashwini',
-        planets: [
-          { name: 'Ascendant (Lagna)', sign: 'Leo', degree: "12° 41'", house: 1 },
-          { name: 'Sun (Surya)', sign: 'Scorpio', degree: "21° 05'", house: 4 },
-          { name: 'Moon (Chandra)', sign: 'Aries', degree: "08° 12'", house: 9 },
-          { name: 'Mars (Mangal)', sign: 'Leo', degree: "04° 19'", house: 1 },
-          { name: 'Mercury (Budh)', sign: 'Scorpio', degree: "29° 50'", house: 4 },
-          { name: 'Jupiter (Guru)', sign: 'Taurus', degree: "15° 33'", house: 10 },
-          { name: 'Venus (Shukra)', sign: 'Libra', degree: "11° 10'", house: 3 },
-          { name: 'Saturn (Shani)', sign: 'Aquarius', degree: "09° 44'", house: 7 },
-          { name: 'Rahu', sign: 'Pisces', degree: "18° 11'", house: 8 },
-          { name: 'Ketu', sign: 'Virgo', degree: "18° 11'", house: 2 },
-        ]
+      const res = await astrologyService.getBirthChart({
+        name: formData.name,
+        dob: formData.dob,
+        tob: formData.tob,
+        pob: formData.pob,
+        lat: parseFloat(formData.lat),
+        lon: parseFloat(formData.lon),
+        tzone: parseFloat(formData.tzone),
       });
-
-      setNavamsaResult({
-        navamsaLagna: 'Aries',
-        planets: [
-          { name: 'Ascendant (Lagna)', natalSign: 'Leo', navamsaSign: 'Aries', navamsaHouse: 1 },
-          { name: 'Sun (Surya)', natalSign: 'Scorpio', navamsaSign: 'Scorpio', navamsaHouse: 8 },
-          { name: 'Moon (Chandra)', natalSign: 'Aries', navamsaSign: 'Sagittarius', navamsaHouse: 9 },
-          { name: 'Mars (Mangal)', natalSign: 'Leo', navamsaSign: 'Leo', navamsaHouse: 5 },
-          { name: 'Mercury (Budh)', natalSign: 'Scorpio', navamsaSign: 'Capricorn', navamsaHouse: 10 },
-          { name: 'Jupiter (Guru)', natalSign: 'Taurus', navamsaSign: 'Gemini', navamsaHouse: 3 },
-          { name: 'Venus (Shukra)', natalSign: 'Libra', navamsaSign: 'Libra', navamsaHouse: 7 },
-          { name: 'Saturn (Shani)', natalSign: 'Aquarius', navamsaSign: 'Aquarius', navamsaHouse: 11 },
-          { name: 'Rahu', natalSign: 'Pisces', navamsaSign: 'Pisces', navamsaHouse: 12 },
-          { name: 'Ketu', natalSign: 'Virgo', navamsaSign: 'Virgo', navamsaHouse: 6 },
-        ]
-      });
-
-      const today = new Date();
-      const formatIso = (d: Date) => d.toISOString().split('T')[0];
-      
-      const ketuStart = new Date(today);
-      ketuStart.setFullYear(today.getFullYear() - 1);
-      const ketuEnd = new Date(ketuStart);
-      ketuEnd.setFullYear(ketuStart.getFullYear() + 7);
-      
-      const venusStart = new Date(ketuEnd);
-      const venusEnd = new Date(venusStart);
-      venusEnd.setFullYear(venusStart.getFullYear() + 20);
-
-      const sunStart = new Date(venusEnd);
-      const sunEnd = new Date(sunStart);
-      sunEnd.setFullYear(sunStart.getFullYear() + 6);
-
-      setDashaResult({
-        nakshatra: 'Ashwini',
-        nakshatraLord: 'Ketu',
-        currentDasha: 'Ketu',
-        currentBhukti: 'Ketu',
-        dashas: [
-          {
-            planet: 'Ketu',
-            startDate: formatIso(ketuStart),
-            endDate: formatIso(ketuEnd),
-            years: 7,
-            bhuktis: [
-              { planet: 'Ketu', startDate: formatIso(ketuStart), endDate: formatIso(new Date(ketuStart.getTime() + 100 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Venus', startDate: formatIso(new Date(ketuStart.getTime() + 100 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 300 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Sun', startDate: formatIso(new Date(ketuStart.getTime() + 300 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 380 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Moon', startDate: formatIso(new Date(ketuStart.getTime() + 380 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 500 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Mars', startDate: formatIso(new Date(ketuStart.getTime() + 500 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 600 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Rahu', startDate: formatIso(new Date(ketuStart.getTime() + 600 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 800 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Jupiter', startDate: formatIso(new Date(ketuStart.getTime() + 800 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 1000 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Saturn', startDate: formatIso(new Date(ketuStart.getTime() + 1000 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(ketuStart.getTime() + 1200 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Mercury', startDate: formatIso(new Date(ketuStart.getTime() + 1200 * 24 * 60 * 60 * 1000)), endDate: formatIso(ketuEnd) },
-            ]
-          },
-          {
-            planet: 'Venus',
-            startDate: formatIso(venusStart),
-            endDate: formatIso(venusEnd),
-            years: 20,
-            bhuktis: [
-              { planet: 'Venus', startDate: formatIso(venusStart), endDate: formatIso(new Date(venusStart.getTime() + 400 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Sun', startDate: formatIso(new Date(venusStart.getTime() + 400 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 550 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Moon', startDate: formatIso(new Date(venusStart.getTime() + 550 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 750 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Mars', startDate: formatIso(new Date(venusStart.getTime() + 750 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 900 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Rahu', startDate: formatIso(new Date(venusStart.getTime() + 900 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 1300 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Jupiter', startDate: formatIso(new Date(venusStart.getTime() + 1300 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 1700 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Saturn', startDate: formatIso(new Date(venusStart.getTime() + 1700 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 2100 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Mercury', startDate: formatIso(new Date(venusStart.getTime() + 2100 * 24 * 60 * 60 * 1000)), endDate: formatIso(new Date(venusStart.getTime() + 2500 * 24 * 60 * 60 * 1000)) },
-              { planet: 'Ketu', startDate: formatIso(new Date(venusStart.getTime() + 2500 * 24 * 60 * 60 * 1000)), endDate: formatIso(venusEnd) },
-            ]
-          }
-        ]
-      });
+      const finalData = res.data?.data ?? res.data;
+      if (!finalData?.lagna) throw new Error('Invalid chart data received from server.');
+      setChartResult(finalData);
+      setNavamsaResult(finalData.navamsaChart ?? null);
+      setDashaResult(finalData.dashaPeriods ?? null);
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? 'Failed to generate chart.';
+      setChartError(msg);
+      setChartResult(null);
     } finally {
       setLoading(false);
     }
+  };
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const fetchHoroscope = async (sign: string) => {
@@ -246,19 +191,76 @@ export const Home: React.FC = () => {
             </div>
             <div className="form-group">
               <label>Place of Birth</label>
-              <input 
-                type="text" 
-                name="pob" 
-                placeholder="e.g. Mumbai, India" 
-                value={formData.pob} 
-                onChange={handleInputChange} 
-                className="form-input" 
-                required 
-              />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text" 
+                  name="pob" 
+                  placeholder="e.g. Mumbai, India" 
+                  value={formData.pob} 
+                  onChange={handleInputChange} 
+                  className="form-input"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={geocodePob}
+                  disabled={geoLoading || !formData.pob.trim()}
+                  className="btn-gold"
+                  style={{ whiteSpace: 'nowrap', padding: '0 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <MapPin size={14} /> {geoLoading ? '...' : 'Lookup'}
+                </button>
+              </div>
+              <small style={{ color: 'var(--color-text-muted)', marginTop: '4px', display: 'block' }}>
+                Enter city name and click Lookup to auto-fill coordinates
+              </small>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Latitude</label>
+                <input 
+                  type="number" 
+                  step="any"
+                  name="lat" 
+                  value={formData.lat} 
+                  onChange={handleInputChange} 
+                  className="form-input" 
+                  required 
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Longitude</label>
+                <input 
+                  type="number" 
+                  step="any"
+                  name="lon" 
+                  value={formData.lon} 
+                  onChange={handleInputChange} 
+                  className="form-input" 
+                  required 
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Timezone</label>
+                <input 
+                  type="number" 
+                  step="any"
+                  name="tzone" 
+                  value={formData.tzone} 
+                  onChange={handleInputChange} 
+                  className="form-input" 
+                  required 
+                />
+              </div>
             </div>
             <button type="submit" className="btn-gold" style={{ width: '100%', marginTop: '10px' }} disabled={loading}>
               {loading ? 'Aligning Planets...' : 'Generate Birth Chart'}
             </button>
+            {chartError && (
+              <div style={{ marginTop: '12px', padding: '12px', borderRadius: '8px', background: 'rgba(231,76,60,0.1)', border: '1px solid #e74c3c', color: '#e74c3c', fontSize: '0.9rem' }}>
+                ⚠ {chartError}
+              </div>
+            )}
           </form>
         </div>
 

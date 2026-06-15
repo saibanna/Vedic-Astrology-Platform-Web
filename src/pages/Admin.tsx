@@ -34,7 +34,10 @@ export const Admin: React.FC = () => {
         name: "Test Admin",
         dob: "1995-11-12",
         tob: "08:12",
-        pob: "Mumbai, India"
+        pob: "Mumbai, India",
+        lat: 19.0760,
+        lon: 72.8777,
+        tzone: 5.5
       }, null, 2)
     },
     {
@@ -46,7 +49,10 @@ export const Admin: React.FC = () => {
         name: "Test Admin",
         dob: "1995-11-12",
         tob: "08:12",
-        pob: "Mumbai, India"
+        pob: "Mumbai, India",
+        lat: 19.0760,
+        lon: 72.8777,
+        tzone: 5.5
       }, null, 2)
     },
     {
@@ -58,7 +64,10 @@ export const Admin: React.FC = () => {
         name: "Test Admin",
         dob: "1995-11-12",
         tob: "08:12",
-        pob: "Mumbai, India"
+        pob: "Mumbai, India",
+        lat: 19.0760,
+        lon: 72.8777,
+        tzone: 5.5
       }, null, 2)
     },
     {
