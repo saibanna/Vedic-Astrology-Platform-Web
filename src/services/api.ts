@@ -102,6 +102,12 @@ export const astrologyService = {
 };
 
 export const remedyService = {
-  getRemedies: () => api.get('/api/v1/remedies'),
+  getRemedies: (type?: string) => api.get(type ? `/api/v1/remedies?type=${type}` : '/api/v1/remedies'),
   bookRemedy: (data: any) => api.post('/api/v1/remedies/book', data),
+};
+
+export type MasterDataItem = { id: number; category: string; code: string; label: string; description?: string; sortOrder: number; isActive: boolean };
+
+export const masterDataService = {
+  getByCategory: (category: string) => api.get<MasterDataItem[]>(`/api/v1/master/${category}`),
 };

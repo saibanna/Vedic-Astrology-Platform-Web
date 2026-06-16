@@ -1,12 +1,27 @@
-import React, { useState } from 'react';
-import { Compass, LineChart, ShieldAlert, Award, Calendar, CircleDollarSign, Terminal, Send, Play, FileJson, Eye } from 'lucide-react';
-import { api } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { Compass, LineChart, ShieldAlert, Award, Calendar, CircleDollarSign, Terminal, Send, Play, FileJson, Eye, Database } from 'lucide-react';
+import { api, masterDataService, type MasterDataItem } from '../services/api';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
 
 export const Admin: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'api-explorer'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'api-explorer' | 'master-data'>('analytics');
+
+  const MASTER_CATEGORIES = ['SPECIALTY', 'LANGUAGE', 'CONSULTATION_TYPE', 'REMEDY_TYPE', 'SLOT_DURATION', 'HOROSCOPE'];
+  const [selectedCategory, setSelectedCategory] = useState('SPECIALTY');
+  const [masterItems, setMasterItems] = useState<MasterDataItem[]>([]);
+  const [masterLoading, setMasterLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'master-data') {
+      setMasterLoading(true);
+      masterDataService.getByCategory(selectedCategory)
+        .then(r => setMasterItems(r.data))
+        .catch(() => setMasterItems([]))
+        .finally(() => setMasterLoading(false));
+    }
+  }, [activeTab, selectedCategory]);
 
   // Operational mock data
   const stats = {
@@ -255,6 +270,25 @@ export const Admin: React.FC = () => {
         >
           <Terminal size={18} /> API Explorer
         </button>
+        <button
+          onClick={() => setActiveTab('master-data')}
+          style={{
+            background: activeTab === 'master-data' ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
+            border: `1px solid ${activeTab === 'master-data' ? 'var(--color-accent-gold)' : 'transparent'}`,
+            color: activeTab === 'master-data' ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          <Database size={18} /> Master Data
+        </button>
       </div>
 
       {activeTab === 'analytics' ? (
@@ -359,6 +393,56 @@ export const Admin: React.FC = () => {
 
           </div>
         </>
+      ) : activeTab === 'master-data' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            {['SPECIALTY','LANGUAGE','CONSULTATION_TYPE','REMEDY_TYPE','SLOT_DURATION','HOROSCOPE'].map(cat => (
+              <button key={cat} onClick={() => setSelectedCategory(cat)} style={{
+                background: selectedCategory === cat ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${selectedCategory === cat ? 'var(--color-accent-gold)' : 'var(--color-border-glass)'}`,
+                borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', fontSize: '0.85rem',
+                color: selectedCategory === cat ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+                fontWeight: selectedCategory === cat ? 600 : 400, transition: 'all 0.2s ease'
+              }}>{cat.replace(/_/g,' ')}</button>
+            ))}
+          </div>
+          <div className="cosmic-card">
+            <h2 style={{ fontSize: '1.3rem', color: 'var(--color-accent-gold)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Database size={18} /> {selectedCategory.replace(/_/g,' ')} ({masterItems.length})
+            </h2>
+            {masterLoading ? (
+              <p style={{ color: 'var(--color-text-muted)' }}>Loading...</p>
+            ) : masterItems.length === 0 ? (
+              <p style={{ color: 'var(--color-text-muted)' }}>No entries found. Backend may not be deployed yet.</p>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold-light)' }}>
+                    {['Code','Label','Description','Order','Status'].map(h => <th key={h} style={{ padding: '10px' }}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {masterItems.map(item => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', opacity: item.isActive ? 1 : 0.45 }}>
+                      <td style={{ padding: '10px', fontFamily: 'monospace', color: 'var(--color-accent-gold-light)' }}>{item.code}</td>
+                      <td style={{ padding: '10px', fontWeight: 600 }}>{item.label}</td>
+                      <td style={{ padding: '10px', color: 'var(--color-text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.description || '—'}</td>
+                      <td style={{ padding: '10px' }}>{item.sortOrder}</td>
+                      <td style={{ padding: '10px' }}>
+                        <span style={{
+                          background: item.isActive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                          border: `1px solid ${item.isActive ? '#22c55e' : '#ef4444'}`,
+                          color: item.isActive ? '#22c55e' : '#ef4444',
+                          borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', fontWeight: 600
+                        }}>{item.isActive ? 'Active' : 'Inactive'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       ) : (
         /* API Explorer View */
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '30px', alignItems: 'start' }}>

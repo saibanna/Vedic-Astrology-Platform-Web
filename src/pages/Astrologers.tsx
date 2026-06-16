@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState, selectAstrologer } from '../store';
-import { bookingService } from '../services/api';
+import { bookingService, masterDataService, type MasterDataItem } from '../services/api';
 import { Star, ShieldCheck, HeartPulse, Clock, Sparkles } from 'lucide-react';
 
 export const Astrologers: React.FC = () => {
@@ -15,6 +15,22 @@ export const Astrologers: React.FC = () => {
   const [slots, setSlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [slotsLoading, setSlotsLoading] = useState(false);
+
+  const [specialties, setSpecialties] = useState<MasterDataItem[]>([]);
+  const [languages, setLanguages] = useState<MasterDataItem[]>([]);
+  const [filterSpecialty, setFilterSpecialty] = useState('');
+  const [filterLanguage, setFilterLanguage] = useState('');
+
+  useEffect(() => {
+    masterDataService.getByCategory('specialty').then(r => setSpecialties(r.data)).catch(() => {});
+    masterDataService.getByCategory('language').then(r => setLanguages(r.data)).catch(() => {});
+  }, []);
+
+  const filteredAstrologers = astrologers.filter(a => {
+    const specialtyMatch = !filterSpecialty || (a.specialty || '').toLowerCase().includes(filterSpecialty.toLowerCase());
+    const languageMatch = !filterLanguage || (a.languages || '').toLowerCase().includes(filterLanguage.toLowerCase());
+    return specialtyMatch && languageMatch;
+  });
 
   // Fetch slots from API
   const fetchAvailableSlots = async (astrologerId: number, date: string) => {
@@ -76,6 +92,34 @@ export const Astrologers: React.FC = () => {
         </p>
       </section>
 
+      {/* Filter Bar */}
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+        <select
+          value={filterSpecialty}
+          onChange={e => setFilterSpecialty(e.target.value)}
+          className="form-input"
+          style={{ flex: 1, minWidth: '180px', background: 'rgba(5,6,15,0.8)', border: '1px solid var(--color-border-glass)' }}
+        >
+          <option value="">All Specialties</option>
+          {specialties.map(s => <option key={s.code} value={s.label}>{s.label}</option>)}
+        </select>
+        <select
+          value={filterLanguage}
+          onChange={e => setFilterLanguage(e.target.value)}
+          className="form-input"
+          style={{ flex: 1, minWidth: '180px', background: 'rgba(5,6,15,0.8)', border: '1px solid var(--color-border-glass)' }}
+        >
+          <option value="">All Languages</option>
+          {languages.map(l => <option key={l.code} value={l.label}>{l.label}</option>)}
+        </select>
+        {(filterSpecialty || filterLanguage) && (
+          <button onClick={() => { setFilterSpecialty(''); setFilterLanguage(''); }}
+            style={{ background: 'transparent', border: '1px solid var(--color-border-glass)', borderRadius: '8px', padding: '8px 16px', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
+            Clear
+          </button>
+        )}
+      </div>
+
       {/* Main Split Layout */}
       <div style={{
         display: 'grid',
@@ -86,7 +130,9 @@ export const Astrologers: React.FC = () => {
         
         {/* Left: Astrologer Directory Grid */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {astrologers.map((astrologer) => (
+          {filteredAstrologers.length === 0 ? (
+            <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '40px 0' }}>No astrologers match the selected filters.</p>
+          ) : filteredAstrologers.map((astrologer) => (
             <div 
               key={astrologer.id} 
               className="cosmic-card"
