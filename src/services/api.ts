@@ -134,7 +134,7 @@ export type GemstoneResult = {
 
 export const gemstoneService = {
   getSuggestion: (data: GemstoneRequest) =>
-    api.post<GemstoneResult>('/api/v1/calc/gemstone-suggestion', data),
+    api.post<GemstoneResult>('/api/v1/astrology/calc/gemstone-suggestion', data),
 };
 
 // Shared calculator input (all calculators use same birth details)
@@ -145,30 +145,31 @@ export type CalcInput = {
 };
 
 export const calculatorService = {
-  manglik:     (d: CalcInput) => api.post('/api/v1/calc/manglik-dosha', d),
-  kaalSarp:    (d: CalcInput) => api.post('/api/v1/calc/kaal-sarp-dosha', d),
-  sadeSati:    (d: CalcInput) => api.post('/api/v1/calc/sade-sati', d),
-  pitraDosha:  (d: CalcInput) => api.post('/api/v1/calc/pitra-dosha', d),
-  nakshatra:   (d: CalcInput) => api.post('/api/v1/calc/nakshatra-finder', d),
-  basicDetails:(d: CalcInput) => api.post('/api/v1/calc/basic-details', d),
-  atmakaraka:  (d: CalcInput) => api.post('/api/v1/calc/atmakaraka', d),
-  rudraksha:   (d: CalcInput) => api.post('/api/v1/calc/rudraksha-suggestion', d),
-  yoginiDasha: (d: CalcInput) => api.post('/api/v1/calc/yogini-dasha', d),
-  kundaliMatch:(d: any)       => api.post('/api/v1/calc/kundali-matching', d),
-  panchang:    (d: { year: number; month: number; day: number; lat: number; lon: number; tzone: number }) =>
-                                  api.post('/api/v1/calc/panchang', d),
-  horoscope:   (sign: string, type: 'daily' | 'monthly' | 'weekly' | 'yearly') => api.post('/api/v1/calc/horoscope', { sign, type }),
-  numerology:  (name: string, dob: string) => api.post('/api/v1/calc/numerology', { name, dob }),
-  biorhythm:   (dob: string, target_date?: string) => api.post('/api/v1/calc/biorhythm', { dob, target_date: target_date || '' }),
-  pdfReport:   (d: CalcInput) => api.post('/api/v1/calc/pdf-report', d, { responseType: 'blob' }),
-  horaMuhurta: (year: number, month: number, day: number) => api.post('/api/v1/calc/hora-muhurta', { year, month, day }),
-  chaughadiya: (year: number, month: number, day: number) => api.post('/api/v1/calc/chaughadiya', { year, month, day }),
-  yearlyHoroscope: (sign: string, year: number) => api.get(`/api/v1/calc/yearly-horoscope?sign=${sign}&year=${year}`),
-  ishtaDevta:  (d: CalcInput) => api.post('/api/v1/calc/ishta-devta', d),
-  dhanYoga:    (d: CalcInput) => api.post('/api/v1/calc/dhan-yoga', d),
-  nameCorrection: (current_name: string, dob: string) => api.post('/api/v1/calc/name-correction', { current_name, dob }),
-  transitReport:  (d: CalcInput) => api.post('/api/v1/calc/transit-report', d),
-  babyName:       (d: CalcInput) => api.post('/api/v1/calc/baby-name', d),
-  loveCompat:     (sign1: string, sign2: string) => api.post('/api/v1/calc/love-compatibility', { sign1, sign2 }),
-  aiInterpret:    (d: CalcInput & { question?: string }) => api.post('/api/v1/calc/ai-interpretation', d),
+  manglik:        (d: CalcInput) => api.post('/api/v1/astrology/calc/manglik-dosha', d),
+  kaalSarp:       (d: CalcInput) => api.post('/api/v1/astrology/calc/kaal-sarp-dosha', d),
+  sadeSati:       (d: CalcInput) => api.post('/api/v1/astrology/calc/sade-sati', d),
+  pitraDosha:     (d: CalcInput) => api.post('/api/v1/astrology/calc/pitra-dosha', d),
+  nakshatra:      (d: CalcInput) => api.post('/api/v1/astrology/calc/nakshatra-finder', d),
+  basicDetails:   (d: CalcInput) => api.post('/api/v1/astrology/calc/basic-details', d),
+  atmakaraka:     (d: CalcInput) => api.post('/api/v1/astrology/calc/atmakaraka', d),
+  rudraksha:      (d: CalcInput) => api.post('/api/v1/astrology/calc/rudraksha-suggestion', d),
+  yoginiDasha:    (d: CalcInput) => api.post('/api/v1/astrology/calc/yogini-dasha', d),
+  kundaliMatch:   (d: any)       => api.post('/api/v1/astrology/calc/kundali-matching', d),
+  panchang:       (d: { year: number; month: number; day: number; lat: number; lon: number; tzone: number }) =>
+                                    api.post('/api/v1/astrology/calc/panchang', d),
+  horoscope:      (sign: string, type: 'daily' | 'monthly' | 'weekly' | 'yearly') =>
+                                    api.post('/api/v1/astrology/calc/horoscope', { sign, type }),
+  numerology:     (name: string, dob: string) => api.post('/api/v1/astrology/calc/numerology', { name, dob }),
+  biorhythm:      (dob: string, target_date?: string) => api.post('/api/v1/astrology/calc/biorhythm', { dob, target_date: target_date || '' }),
+  pdfReport:      (d: CalcInput) => api.post('/api/v1/astrology/calc/pdf-report', d, { responseType: 'blob' }),
+  horaMuhurta:    (year: number, month: number, day: number) => api.post('/api/v1/astrology/calc/hora-muhurta', { year, month, day }),
+  chaughadiya:    (year: number, month: number, day: number) => api.post('/api/v1/astrology/calc/chaughadiya', { year, month, day }),
+  yearlyHoroscope:(sign: string, year: number) => api.get(`/api/v1/astrology/calc/yearly-horoscope?sign=${sign}&year=${year}`),
+  ishtaDevta:     (d: CalcInput) => api.post('/api/v1/astrology/calc/ishta-devta', d),
+  dhanYoga:       (d: CalcInput) => api.post('/api/v1/astrology/calc/dhan-yoga', d),
+  nameCorrection: (current_name: string, dob: string) => api.post('/api/v1/astrology/calc/name-correction', { current_name, dob }),
+  transitReport:  (d: CalcInput) => api.post('/api/v1/astrology/calc/transit-report', d),
+  babyName:       (d: CalcInput) => api.post('/api/v1/astrology/calc/baby-name', d),
+  loveCompat:     (sign1: string, sign2: string) => api.post('/api/v1/astrology/calc/love-compatibility', { sign1, sign2 }),
+  aiInterpret:    (d: CalcInput & { question?: string }) => api.post('/api/v1/astrology/calc/ai-interpretation', d),
 };
