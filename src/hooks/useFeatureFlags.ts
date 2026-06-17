@@ -3,7 +3,7 @@ import { api } from '../services/api';
 
 export type FeatureFlag = {
   id: number; code: string; label: string; description: string;
-  sortOrder: number; isActive: boolean;
+  sortOrder: number; isActive: boolean; parentCode?: string;
 };
 
 // Cached in module scope — fetched once per session

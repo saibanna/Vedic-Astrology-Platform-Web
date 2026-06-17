@@ -108,7 +108,7 @@ export const remedyService = {
   bookRemedy: (data: any) => api.post('/api/v1/remedies/book', data),
 };
 
-export type MasterDataItem = { id: number; category: string; code: string; label: string; description?: string; sortOrder: number; isActive: boolean };
+export type MasterDataItem = { id: number; category: string; code: string; label: string; description?: string; sortOrder: number; isActive: boolean; parentCode?: string };
 
 export const masterDataService = {
   getByCategory: (category: string) => api.get<MasterDataItem[]>(`/api/v1/master/${category}`),

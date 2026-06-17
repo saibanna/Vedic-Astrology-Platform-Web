@@ -29,12 +29,44 @@ export const Admin: React.FC = () => {
     try {
       await masterDataService.toggleFeature(code);
       setFeatures(prev => prev.map(f => f.code === code ? { ...f, isActive: !f.isActive } : f));
+      setMasterItems(prev => prev.map(f => f.code === code ? { ...f, isActive: !f.isActive } : f));
     } catch (err) {
       console.error('Failed to toggle feature', err);
       alert('Could not toggle feature flag. Please try again.');
     } finally {
       setTogglingCode(null);
     }
+  };
+
+  const isParentDisabled = (item: MasterDataItem, list: MasterDataItem[]) => {
+    if (!item.parentCode) return false;
+    const parent = list.find(f => f.code === item.parentCode);
+    return parent ? !parent.isActive : false;
+  };
+
+  const getGroupedFeatures = (list: MasterDataItem[]) => {
+    const parents = list.filter(f => !f.parentCode);
+    const children = list.filter(f => f.parentCode);
+    const result: { item: MasterDataItem; isChild: boolean; parentLabel?: string }[] = [];
+    const sortedParents = [...parents].sort((a, b) => a.sortOrder - b.sortOrder);
+    
+    sortedParents.forEach(parent => {
+      result.push({ item: parent, isChild: false });
+      const parentChildren = children
+        .filter(c => c.parentCode === parent.code)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+      parentChildren.forEach(child => {
+        result.push({ item: child, isChild: true, parentLabel: parent.label });
+      });
+    });
+    
+    const processedIds = new Set(result.map(r => r.item.id));
+    list.forEach(item => {
+      if (!processedIds.has(item.id)) {
+        result.push({ item, isChild: false });
+      }
+    });
+    return result;
   };
 
   const [selectedCategory, setSelectedCategory] = useState('SPECIALTY');  const [masterItems, setMasterItems] = useState<MasterDataItem[]>([]);
@@ -444,7 +476,7 @@ export const Admin: React.FC = () => {
       ) : activeTab === 'master-data' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {['SPECIALTY','LANGUAGE','CONSULTATION_TYPE','REMEDY_TYPE','SLOT_DURATION','HOROSCOPE'].map(cat => (
+            {['SPECIALTY','LANGUAGE','CONSULTATION_TYPE','REMEDY_TYPE','SLOT_DURATION','HOROSCOPE','FEATURE'].map(cat => (
               <button key={cat} onClick={() => setSelectedCategory(cat)} style={{
                 background: selectedCategory === cat ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)',
                 border: `1px solid ${selectedCategory === cat ? 'var(--color-accent-gold)' : 'var(--color-border-glass)'}`,
@@ -466,24 +498,61 @@ export const Admin: React.FC = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold-light)' }}>
-                    {['Code','Label','Description','Order','Status'].map(h => <th key={h} style={{ padding: '10px' }}>{h}</th>)}
+                    {['Code','Label','Description','Order','Status', ...(selectedCategory === 'FEATURE' ? ['Action'] : [])].map(h => (
+                      <th key={h} style={{ padding: '10px', textAlign: h === 'Action' ? 'right' : 'left' }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {masterItems.map(item => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', opacity: item.isActive ? 1 : 0.45 }}>
+                  {(selectedCategory === 'FEATURE' ? getGroupedFeatures(masterItems) : masterItems.map(item => ({ item, isChild: false }))).map(({ item, isChild }) => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', opacity: item.isActive ? 1 : 0.45, background: isChild ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
                       <td style={{ padding: '10px', fontFamily: 'monospace', color: 'var(--color-accent-gold-light)' }}>{item.code}</td>
-                      <td style={{ padding: '10px', fontWeight: 600 }}>{item.label}</td>
+                      <td style={{ padding: '10px', fontWeight: 600, paddingLeft: isChild ? '32px' : '10px' }}>
+                        {isChild && <span style={{ color: 'var(--color-accent-gold)', marginRight: '8px', opacity: 0.6 }}>↳</span>}
+                        {item.label}
+                      </td>
                       <td style={{ padding: '10px', color: 'var(--color-text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.description || '—'}</td>
                       <td style={{ padding: '10px' }}>{item.sortOrder}</td>
                       <td style={{ padding: '10px' }}>
-                        <span style={{
-                          background: item.isActive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-                          border: `1px solid ${item.isActive ? '#22c55e' : '#ef4444'}`,
-                          color: item.isActive ? '#22c55e' : '#ef4444',
-                          borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', fontWeight: 600
-                        }}>{item.isActive ? 'Active' : 'Inactive'}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+                          <span style={{
+                            background: item.isActive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                            border: `1px solid ${item.isActive ? '#22c55e' : '#ef4444'}`,
+                            color: item.isActive ? '#22c55e' : '#ef4444',
+                            borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', fontWeight: 600
+                          }}>{item.isActive ? 'Active' : 'Inactive'}</span>
+                          {isChild && isParentDisabled(item, masterItems) && (
+                            <span style={{
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: '#f87171',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '0.65rem',
+                              fontWeight: 600
+                            }}>
+                              Muted (Parent Offline)
+                            </span>
+                          )}
+                        </div>
                       </td>
+                      {selectedCategory === 'FEATURE' && (
+                        <td style={{ padding: '10px', textAlign: 'right' }}>
+                          <button
+                            onClick={() => handleToggle(item.code)}
+                            disabled={togglingCode === item.code}
+                            style={{
+                              background: item.isActive ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                              border: `1px solid ${item.isActive ? '#ef4444' : '#22c55e'}`,
+                              color: item.isActive ? '#ef4444' : '#22c55e',
+                              borderRadius: '6px', padding: '4px 12px', fontSize: '0.75rem', fontWeight: 600,
+                              cursor: togglingCode === item.code ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
+                            }}
+                          >
+                            {togglingCode === item.code ? '...' : (item.isActive ? 'Disable' : 'Enable')}
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -890,23 +959,41 @@ export const Admin: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {features.map((feat) => (
-                    <tr key={feat.code} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.2s' }}>
-                      <td style={{ padding: '16px 12px', fontWeight: 600, color: '#ffffff' }}>{feat.label}</td>
+                  {getGroupedFeatures(features).map(({ item: feat, isChild }) => (
+                    <tr key={feat.code} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.2s', background: isChild ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                      <td style={{ padding: '16px 12px', fontWeight: isChild ? 500 : 600, color: feat.isActive ? '#ffffff' : 'var(--color-text-muted)', paddingLeft: isChild ? '36px' : '12px' }}>
+                        {isChild && <span style={{ color: 'var(--color-accent-gold)', marginRight: '8px', opacity: 0.6 }}>↳</span>}
+                        {feat.label}
+                      </td>
                       <td style={{ padding: '16px 12px', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{feat.description || '-'}</td>
                       <td style={{ padding: '16px 12px', fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--color-accent-gold-light)' }}>{feat.code}</td>
                       <td style={{ padding: '16px 12px', textAlign: 'center' }}>
-                        <span style={{
-                          background: feat.isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                          border: `1px solid ${feat.isActive ? '#22c55e' : '#ef4444'}`,
-                          color: feat.isActive ? '#22c55e' : '#ef4444',
-                          padding: '4px 10px',
-                          borderRadius: '12px',
-                          fontSize: '0.75rem',
-                          fontWeight: 'bold'
-                        }}>
-                          {feat.isActive ? 'ENABLED' : 'DISABLED'}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                          <span style={{
+                            background: feat.isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            border: `1px solid ${feat.isActive ? '#22c55e' : '#ef4444'}`,
+                            color: feat.isActive ? '#22c55e' : '#ef4444',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold'
+                          }}>
+                            {feat.isActive ? 'ENABLED' : 'DISABLED'}
+                          </span>
+                          {isChild && isParentDisabled(feat, features) && (
+                            <span style={{
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: '#f87171',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '0.65rem',
+                              fontWeight: 600
+                            }}>
+                              Muted (Parent Offline)
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: '16px 12px', textAlign: 'right' }}>
                         <button
