@@ -6,7 +6,36 @@ import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
 
 export const Admin: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'api-explorer' | 'master-data'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'api-explorer' | 'master-data' | 'features'>('analytics');
+
+  const [features, setFeatures] = useState<MasterDataItem[]>([]);
+  const [loadingFeatures, setLoadingFeatures] = useState(false);
+  const [togglingCode, setTogglingCode] = useState<string | null>(null);
+
+  const fetchFeatures = async () => {
+    setLoadingFeatures(true);
+    try {
+      const res = await masterDataService.getAllByCategory('FEATURE');
+      setFeatures(res.data);
+    } catch (err) {
+      console.error('Failed to load feature flags', err);
+    } finally {
+      setLoadingFeatures(false);
+    }
+  };
+
+  const handleToggle = async (code: string) => {
+    setTogglingCode(code);
+    try {
+      await masterDataService.toggleFeature(code);
+      setFeatures(prev => prev.map(f => f.code === code ? { ...f, isActive: !f.isActive } : f));
+    } catch (err) {
+      console.error('Failed to toggle feature', err);
+      alert('Could not toggle feature flag. Please try again.');
+    } finally {
+      setTogglingCode(null);
+    }
+  };
 
   const [selectedCategory, setSelectedCategory] = useState('SPECIALTY');  const [masterItems, setMasterItems] = useState<MasterDataItem[]>([]);
   const [masterLoading, setMasterLoading] = useState(false);
@@ -18,6 +47,8 @@ export const Admin: React.FC = () => {
         .then(r => setMasterItems(r.data))
         .catch(() => setMasterItems([]))
         .finally(() => setMasterLoading(false));
+    } else if (activeTab === 'features') {
+      fetchFeatures();
     }
   }, [activeTab, selectedCategory]);
 
@@ -248,6 +279,25 @@ export const Admin: React.FC = () => {
           }}
         >
           <LineChart size={18} /> Analytics & Operations
+        </button>
+        <button 
+          onClick={() => setActiveTab('features')}
+          style={{
+            background: activeTab === 'features' ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
+            border: `1px solid ${activeTab === 'features' ? 'var(--color-accent-gold)' : 'transparent'}`,
+            color: activeTab === 'features' ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          <Award size={18} /> Feature Controls
         </button>
         <button 
           onClick={() => setActiveTab('api-explorer')}
@@ -806,6 +856,79 @@ export const Admin: React.FC = () => {
             )}
           </div>
 
+        </div>
+      )}
+
+      {activeTab === 'features' && (
+        <div className="cosmic-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', borderBottom: '1px solid var(--color-border-glass)', paddingBottom: '16px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.8rem', color: 'var(--color-accent-gold)', margin: 0 }}>System Feature Toggles</h2>
+              <p style={{ color: 'var(--color-text-muted)', margin: '6px 0 0 0', fontSize: '0.95rem' }}>
+                Enable or disable client-facing Vedic calculators and platform modules in real-time.
+              </p>
+            </div>
+            <button className="btn-outline" onClick={fetchFeatures} disabled={loadingFeatures} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+              Refresh List
+            </button>
+          </div>
+
+          {loadingFeatures ? (
+            <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+              Retrieving feature flags from master configuration database...
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem' }}>
+                    <th style={{ padding: '12px' }}>Feature Name</th>
+                    <th style={{ padding: '12px' }}>Description</th>
+                    <th style={{ padding: '12px' }}>System Code</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>Status</th>
+                    <th style={{ padding: '12px', textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {features.map((feat) => (
+                    <tr key={feat.code} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.2s' }}>
+                      <td style={{ padding: '16px 12px', fontWeight: 600, color: '#ffffff' }}>{feat.label}</td>
+                      <td style={{ padding: '16px 12px', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{feat.description || '-'}</td>
+                      <td style={{ padding: '16px 12px', fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--color-accent-gold-light)' }}>{feat.code}</td>
+                      <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                        <span style={{
+                          background: feat.isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                          border: `1px solid ${feat.isActive ? '#22c55e' : '#ef4444'}`,
+                          color: feat.isActive ? '#22c55e' : '#ef4444',
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}>
+                          {feat.isActive ? 'ENABLED' : 'DISABLED'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 12px', textAlign: 'right' }}>
+                        <button
+                          onClick={() => handleToggle(feat.code)}
+                          disabled={togglingCode === feat.code}
+                          className={feat.isActive ? 'btn-outline' : 'btn-gold'}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            textTransform: 'none',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          {togglingCode === feat.code ? 'Toggling...' : feat.isActive ? 'Disable' : 'Enable'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

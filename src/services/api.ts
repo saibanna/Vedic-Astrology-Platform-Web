@@ -112,6 +112,8 @@ export type MasterDataItem = { id: number; category: string; code: string; label
 
 export const masterDataService = {
   getByCategory: (category: string) => api.get<MasterDataItem[]>(`/api/v1/master/${category}`),
+  getAllByCategory: (category: string) => api.get<MasterDataItem[]>(`/api/v1/master/${category}/all`),
+  toggleFeature: (code: string) => api.patch<MasterDataItem>(`/api/v1/master/feature/${code}/toggle`),
 };
 
 export type GemstoneRequest = {
@@ -172,4 +174,8 @@ export const calculatorService = {
   babyName:       (d: CalcInput) => api.post('/api/v1/astrology/calc/baby-name', d),
   loveCompat:     (sign1: string, sign2: string) => api.post('/api/v1/astrology/calc/love-compatibility', { sign1, sign2 }),
   aiInterpret:    (d: CalcInput & { question?: string }) => api.post('/api/v1/astrology/calc/ai-interpretation', d),
+  divisionalChart:(d: CalcInput & { division: number }) => api.post('/api/v1/astrology/calc/divisional-chart', d),
+  ashtakavarga:   (d: CalcInput) => api.post('/api/v1/astrology/calc/ashtakavarga', d),
+  varshphal:      (d: CalcInput) => api.post('/api/v1/astrology/calc/varshphal', d),
+  planetaryAspects:(d: CalcInput) => api.post('/api/v1/astrology/calc/planetary-aspects', d),
 };

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { astrologyService } from '../services/api';
-import { Compass, Moon, Sun, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { astrologyService, calculatorService, masterDataService } from '../services/api';
+import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
@@ -43,18 +43,107 @@ export const Home: React.FC = () => {
   const [horoscope, setHoroscope] = useState<string | null>(null);
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
 
+  // Feature flags
+  const [activeFeatures, setActiveFeatures] = useState<Record<string, boolean>>({
+    birth_chart: true,
+    navamsa_chart: true,
+    dasha: true,
+  });
+
+  useEffect(() => {
+    const loadActiveFeatures = async () => {
+      try {
+        const res = await masterDataService.getByCategory('FEATURE');
+        const activeMap: Record<string, boolean> = {
+          birth_chart: false,
+          navamsa_chart: false,
+          dasha: false,
+        };
+        res.data.forEach(feat => {
+          if (feat.code === 'birth_chart' || feat.code === 'navamsa_chart' || feat.code === 'dasha') {
+            activeMap[feat.code] = feat.isActive;
+          }
+        });
+        setActiveFeatures(activeMap);
+      } catch (err) {
+        console.error('Failed to fetch active feature flags', err);
+      }
+    };
+    loadActiveFeatures();
+  }, []);
+
+  // Calculator results — loaded after chart generation
+  const [activeTab, setActiveTab] = useState('chart');
+  const [calcData, setCalcData] = useState<Record<string, any>>({});
+  const [calcLoading, setCalcLoading] = useState<Record<string, boolean>>({});
+
+  const loadCalc = async (tab: string, input: any) => {
+    if (calcData[tab]) return; // already loaded
+    setCalcLoading(l => ({ ...l, [tab]: true }));
+    try {
+      let res: any;
+      if (tab === 'doshas') {
+        const [manglik, kaalSarp, sadeSati, pitraDosha] = await Promise.allSettled([
+          calculatorService.manglik(input),
+          calculatorService.kaalSarp(input),
+          calculatorService.sadeSati(input),
+          calculatorService.pitraDosha(input),
+        ]);
+        res = {
+          manglik:   manglik.status   === 'fulfilled' ? manglik.value.data   : null,
+          kaalSarp:  kaalSarp.status  === 'fulfilled' ? kaalSarp.value.data  : null,
+          sadeSati:  sadeSati.status  === 'fulfilled' ? sadeSati.value.data  : null,
+          pitraDosha:pitraDosha.status === 'fulfilled' ? pitraDosha.value.data : null,
+        };
+      } else if (tab === 'gemstone') {
+        res = (await calculatorService.nakshatra(input)).data; // reuse nakshatra endpoint to get moon sign
+        const gemRes = await fetch(`/api/v1/astrology/calc/gemstone-suggestion`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...input, concern: 'General' })
+        });
+        res = await gemRes.json();
+      } else if (tab === 'nakshatra') {
+        const [nak, atma, ishta, dhan] = await Promise.allSettled([
+          calculatorService.nakshatra(input),
+          calculatorService.atmakaraka(input),
+          calculatorService.ishtaDevta(input),
+          calculatorService.dhanYoga(input),
+        ]);
+        res = {
+          nakshatra:  nak.status   === 'fulfilled' ? nak.value.data   : null,
+          atmakaraka: atma.status  === 'fulfilled' ? atma.value.data  : null,
+          ishtaDevta: ishta.status === 'fulfilled' ? ishta.value.data : null,
+          dhanYoga:   dhan.status  === 'fulfilled' ? dhan.value.data  : null,
+        };
+      } else if (tab === 'transit') {
+        res = (await calculatorService.transitReport(input)).data;
+      } else if (tab === 'rudraksha') {
+        res = (await calculatorService.rudraksha(input)).data;
+      }
+      setCalcData(d => ({ ...d, [tab]: res }));
+    } catch { /* silent — tab shows error state */ }
+    finally { setCalcLoading(l => ({ ...l, [tab]: false })); }
+  };
+
+  const switchTab = (tab: string, input: any) => {
+    setActiveTab(tab);
+    if (tab !== 'chart') loadCalc(tab, input);
+  };
+
+  const [geoSuggestions, setGeoSuggestions] = useState<any[]>([]);
+  const [calcInput, setCalcInput] = useState<any>(null);
+
   const geocodePob = async () => {
     if (!formData.pob.trim()) return;
-    setGeoLoading(true);
+    setGeoLoading(true); setGeoSuggestions([]);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(formData.pob)}&format=json&limit=1`,
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(formData.pob)}&format=json&limit=5`,
         { headers: { 'Accept-Language': 'en' } }
       );
       const data = await res.json();
-      if (data && data[0]) {
-        const { lat, lon } = data[0];
-        setFormData(f => ({ ...f, lat: parseFloat(lat).toFixed(4), lon: parseFloat(lon).toFixed(4) }));
+      if (data?.length) {
+        setGeoSuggestions(data);
       } else {
         alert('City not found. Please enter coordinates manually.');
       }
@@ -63,6 +152,18 @@ export const Home: React.FC = () => {
     } finally {
       setGeoLoading(false);
     }
+  };
+
+  const selectGeoSuggestion = (place: any) => {
+    const tzOffset = Math.round(parseFloat(place.lon) / 15 * 2) / 2;
+    setFormData(f => ({
+      ...f,
+      pob: place.display_name.split(',').slice(0, 3).join(', '),
+      lat: parseFloat(place.lat).toFixed(4),
+      lon: parseFloat(place.lon).toFixed(4),
+      tzone: tzOffset.toFixed(1),
+    }));
+    setGeoSuggestions([]);
   };
 
   const generateKundali = async (e: React.FormEvent) => {
@@ -90,6 +191,16 @@ export const Home: React.FC = () => {
       setChartResult(finalData);
       setNavamsaResult(finalData.navamsaChart ?? null);
       setDashaResult(finalData.dashaPeriods ?? null);
+      const input = {
+        year: parseInt(formData.dob.split('-')[0]), month: parseInt(formData.dob.split('-')[1]),
+        day: parseInt(formData.dob.split('-')[2]),
+        hour: parseInt((formData.tob || '12:00').split(':')[0]),
+        minute: parseInt((formData.tob || '12:00').split(':')[1]),
+        lat: parseFloat(formData.lat), lon: parseFloat(formData.lon), tzone: parseFloat(formData.tzone),
+      };
+      setCalcInput(input);
+      setCalcData({});  // reset so tabs reload fresh
+      setActiveTab('chart');
     } catch (err: any) {
       const msg = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? 'Failed to generate chart.';
       setChartError(msg);
@@ -155,7 +266,24 @@ export const Home: React.FC = () => {
           <h2 style={{ fontSize: '1.8rem', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-accent-gold)' }}>
             <Compass size={28} className="animate-spin-slow" /> Free Kundali Chart
           </h2>
-          <form onSubmit={generateKundali}>
+          {!activeFeatures.birth_chart ? (
+            <div style={{ padding: '30px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#f87171',
+                padding: '12px',
+                borderRadius: '50%',
+                display: 'inline-flex'
+              }}>
+                <Compass size={36} />
+              </div>
+              <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                The Free Birth Chart generation features are currently offline for scheduled maintenance. Please consult our astrologers directly or check back later!
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={generateKundali}>
             <div className="form-group">
               <label>Name</label>
               <input 
@@ -192,13 +320,14 @@ export const Home: React.FC = () => {
             </div>
             <div className="form-group">
               <label>Place of Birth</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
                 <input 
                   type="text" 
                   name="pob" 
                   placeholder="e.g. Mumbai, India" 
                   value={formData.pob} 
-                  onChange={handleInputChange} 
+                  onChange={handleInputChange}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), geocodePob())}
                   className="form-input"
                   style={{ flex: 1 }}
                 />
@@ -209,11 +338,24 @@ export const Home: React.FC = () => {
                   className="btn-gold"
                   style={{ whiteSpace: 'nowrap', padding: '0 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <MapPin size={14} /> {geoLoading ? '...' : 'Lookup'}
+                  <Search size={14} /> {geoLoading ? '...' : 'Search'}
                 </button>
               </div>
+              {geoSuggestions.length > 0 && (
+                <div style={{ background: 'rgba(8,9,20,0.98)', border: '1px solid var(--color-border-gold)', borderRadius: '8px', marginTop: '4px', overflow: 'hidden', zIndex: 50, position: 'relative' }}>
+                  {geoSuggestions.map((s, i) => (
+                    <div key={i} onClick={() => selectGeoSuggestion(s)}
+                      style={{ padding: '9px 14px', cursor: 'pointer', fontSize: '0.83rem', color: 'var(--color-text-main)', borderBottom: i < geoSuggestions.length-1 ? '1px solid var(--color-border-glass)' : 'none' }}
+                      onMouseEnter={e => (e.currentTarget.style.background='rgba(212,175,55,0.08)')}
+                      onMouseLeave={e => (e.currentTarget.style.background='transparent')}
+                    >
+                      📍 {s.display_name.split(',').slice(0,4).join(', ')}
+                    </div>
+                  ))}
+                </div>
+              )}
               <small style={{ color: 'var(--color-text-muted)', marginTop: '4px', display: 'block' }}>
-                Enter city name and click Lookup to auto-fill coordinates
+                Type city and click Search to auto-fill coordinates
               </small>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
@@ -263,6 +405,7 @@ export const Home: React.FC = () => {
               </div>
             )}
           </form>
+          )}
         </div>
 
         {/* Right: Daily Horoscope Grid */}
@@ -347,7 +490,7 @@ export const Home: React.FC = () => {
               <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} />
             </div>
 
-            {navamsaResult && (
+            {navamsaResult && activeFeatures.navamsa_chart && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
                   Navamsa Kundali (D-9 Chart)
@@ -357,7 +500,7 @@ export const Home: React.FC = () => {
             )}
           </div>
 
-          {dashaResult && (
+          {dashaResult && activeFeatures.dasha && (
             <div style={{ margin: '40px 0' }}>
               <h3 style={{ fontSize: '1.6rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', borderBottom: '1px solid var(--color-border-gold)', paddingBottom: '8px' }}>
                 Vimshottari Dasha Bhukti Periods
@@ -409,6 +552,183 @@ export const Home: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* Calculator Tabs */}
+      {calcInput && (() => {
+        const TABS = [
+          { id: 'chart',    label: 'Charts & Dasha', icon: <Compass size={15} /> },
+          { id: 'doshas',   label: 'Dosha Report',   icon: <ShieldAlert size={15} /> },
+          { id: 'gemstone', label: 'Gemstone',        icon: <Gem size={15} /> },
+          { id: 'nakshatra',label: 'Nakshatra & Yogas',icon: <Star size={15} /> },
+          { id: 'transit',  label: 'Transit Report',  icon: <Clock size={15} /> },
+          { id: 'rudraksha',label: 'Rudraksha',       icon: <Sparkles size={15} /> },
+        ];
+        const TabLoader = () => <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>Calculating…</div>;
+
+        const Dosha = ({ d, label, color }: any) => d && (
+          <div className="cosmic-card" style={{ border: `1px solid ${d.isManglik||d.isKaalSarp||d.inSadeSati||d.isPitraDosha ? `${color}40` : 'rgba(80,200,80,0.2)'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+              <ShieldAlert size={20} color={d.isManglik||d.isKaalSarp||d.inSadeSati||d.isPitraDosha ? color : '#4caf50'} />
+              <strong style={{ color: '#fff' }}>{label}</strong>
+              <span style={{ marginLeft: 'auto', color: d.isManglik||d.isKaalSarp||d.inSadeSati||d.isPitraDosha ? color : '#4caf50', fontWeight: 600, fontSize: '0.85rem' }}>
+                {d.isManglik||d.isKaalSarp||d.inSadeSati||d.isPitraDosha ? (d.intensity||d.type||d.phase||d.intensity||'Present') : 'Not Present'}
+              </span>
+            </div>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: 0 }}>{d.description}</p>
+            {(d.remedies||[]).slice(0,2).map((r: string, i: number) => (
+              <p key={i} style={{ color: 'var(--color-accent-gold)', fontSize: '0.78rem', marginTop: '4px' }}>• {r}</p>
+            ))}
+          </div>
+        );
+
+        return (
+          <section style={{ marginTop: '-20px' }}>
+            {/* Tab bar */}
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', borderBottom: '1px solid var(--color-border-glass)', marginBottom: '24px' }}>
+              {TABS.map(t => (
+                <button key={t.id} onClick={() => switchTab(t.id, calcInput)} style={{
+                  background: activeTab === t.id ? 'rgba(212,175,55,0.15)' : 'none',
+                  border: 'none', borderBottom: activeTab === t.id ? '2px solid var(--color-accent-gold)' : '2px solid transparent',
+                  color: activeTab === t.id ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+                  padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                  fontWeight: activeTab === t.id ? 600 : 400, fontSize: '0.88rem', transition: 'all 0.2s',
+                }}>
+                  {t.icon} {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab: Doshas */}
+            {activeTab === 'doshas' && (
+              calcLoading.doshas ? <TabLoader /> :
+              calcData.doshas ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '16px' }}>
+                  <Dosha d={calcData.doshas.manglik}    label="Manglik Dosha"   color="#e05252" />
+                  <Dosha d={calcData.doshas.kaalSarp}   label="Kaal Sarp Dosha" color="#9b59b6" />
+                  <Dosha d={calcData.doshas.sadeSati}   label="Sade Sati"       color="#6464dc" />
+                  <Dosha d={calcData.doshas.pitraDosha} label="Pitra Dosha"     color="#dc9632" />
+                </div>
+              ) : null
+            )}
+
+            {/* Tab: Gemstone */}
+            {activeTab === 'gemstone' && (
+              calcLoading.gemstone ? <TabLoader /> :
+              calcData.gemstone?.recommendations ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '8px' }}>
+                    {[['Lagna', calcData.gemstone.lagna],['Moon Sign', calcData.gemstone.moonSign],['Nakshatra', calcData.gemstone.nakshatra],['Current Dasha', calcData.gemstone.currentDasha]].map(([k,v]) => (
+                      <div key={k} className="cosmic-card" style={{ textAlign: 'center', padding: '12px' }}>
+                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>{k}</p>
+                        <p style={{ color: 'var(--color-accent-gold)', fontWeight: 700 }}>{v}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {calcData.gemstone.recommendations.map((rec: any) => (
+                    <div key={rec.rank} className="cosmic-card" style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '16px', border: rec.rank===1 ? '1px solid var(--color-border-gold)' : undefined }}>
+                      <div style={{ textAlign: 'center' }}>
+                        {rec.rank === 1 && <span style={{ background: 'var(--color-accent-gold)', color: '#000', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', display: 'block', marginBottom: '6px' }}>PRIMARY</span>}
+                        <p style={{ color: 'var(--color-accent-gold-light)', fontWeight: 700, fontSize: '1.1rem' }}>{rec.gemstone}</p>
+                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>{rec.hindiName}</p>
+                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>{rec.metal} · {rec.dayToWear}</p>
+                      </div>
+                      <div>
+                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '6px' }}>{rec.reason}</p>
+                        <p style={{ color: '#aed6f1', fontSize: '0.82rem' }}>{rec.benefit}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null
+            )}
+
+            {/* Tab: Nakshatra & Yogas */}
+            {activeTab === 'nakshatra' && (
+              calcLoading.nakshatra ? <TabLoader /> :
+              calcData.nakshatra ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Nakshatra */}
+                  {calcData.nakshatra.nakshatra && (
+                    <div className="cosmic-card" style={{ border: '1px solid var(--color-border-gold)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '16px', textAlign: 'center' }}>
+                      {[['Nakshatra', calcData.nakshatra.nakshatra],['Pada', calcData.nakshatra.pada],['Lord', calcData.nakshatra.lord],['Deity', calcData.nakshatra.deity],['Symbol', calcData.nakshatra.symbol]].map(([k,v]) => (
+                        <div key={k}><p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>{k}</p><p style={{ color: 'var(--color-accent-gold)', fontWeight: 700 }}>{v}</p></div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Atmakaraka */}
+                  {calcData.nakshatra.atmakaraka && (
+                    <div className="cosmic-card">
+                      <p style={{ color: 'var(--color-accent-gold)', fontWeight: 600, marginBottom: '4px' }}>Atmakaraka: {calcData.nakshatra.atmakaraka.atmakaraka}</p>
+                      <p style={{ color: '#aed6f1', fontSize: '0.88rem', fontStyle: 'italic' }}>{calcData.nakshatra.atmakaraka.meaning}</p>
+                    </div>
+                  )}
+                  {/* Ishta Devta */}
+                  {calcData.nakshatra.ishtaDevta && (
+                    <div className="cosmic-card">
+                      <p style={{ color: 'var(--color-accent-gold)', fontWeight: 600, marginBottom: '4px' }}>Ishta Devta: {calcData.nakshatra.ishtaDevta.ishtaDevta}</p>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '4px' }}>{calcData.nakshatra.ishtaDevta.description}</p>
+                      <p style={{ color: '#aed6f1', fontSize: '0.85rem', fontStyle: 'italic' }}>Mantra: {calcData.nakshatra.ishtaDevta.mantra}</p>
+                    </div>
+                  )}
+                  {/* Dhan Yoga */}
+                  {calcData.nakshatra.dhanYoga && (
+                    <div className="cosmic-card">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                        <TrendingUp size={18} color="var(--color-accent-gold)" />
+                        <strong style={{ color: '#fff' }}>Dhan Yogas</strong>
+                        <span style={{ color: calcData.nakshatra.dhanYoga.count > 0 ? '#4caf50' : 'var(--color-text-muted)', marginLeft: 'auto', fontWeight: 600, fontSize: '0.85rem' }}>{calcData.nakshatra.dhanYoga.strength}</span>
+                      </div>
+                      {calcData.nakshatra.dhanYoga.wealthYogas?.length > 0
+                        ? calcData.nakshatra.dhanYoga.wealthYogas.map((y: any, i: number) => (
+                            <p key={i} style={{ color: '#4caf50', fontSize: '0.82rem', marginBottom: '4px' }}>✓ <strong>{y.yoga}</strong> — {y.description}</p>
+                          ))
+                        : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>{calcData.nakshatra.dhanYoga.summary}</p>
+                      }
+                    </div>
+                  )}
+                </div>
+              ) : null
+            )}
+
+            {/* Tab: Transit */}
+            {activeTab === 'transit' && (
+              calcLoading.transit ? <TabLoader /> :
+              calcData.transit ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Current planetary transits over your natal chart as of {calcData.transit.transitDate}</p>
+                  {calcData.transit.significant?.map((t: any) => (
+                    <div key={t.planet} className="cosmic-card" style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '12px', alignItems: 'center' }}>
+                      <div>
+                        <p style={{ color: 'var(--color-accent-gold)', fontWeight: 700, marginBottom: '2px' }}>{t.planet.split(' ')[0]}</p>
+                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>{t.transitSign} → House {t.transitHouse}</p>
+                      </div>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>{t.effect}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null
+            )}
+
+            {/* Tab: Rudraksha */}
+            {activeTab === 'rudraksha' && (
+              calcLoading.rudraksha ? <TabLoader /> :
+              calcData.rudraksha ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  {[['Primary (Nakshatra)', calcData.rudraksha.primary], ['Secondary (Lagna)', calcData.rudraksha.secondary]].map(([label, rec]: any) => (
+                    <div key={label} className="cosmic-card" style={{ border: '1px solid var(--color-border-gold)' }}>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginBottom: '4px' }}>{label}</p>
+                      <p style={{ color: 'var(--color-accent-gold-light)', fontWeight: 700, fontSize: '1.3rem', marginBottom: '4px' }}>{rec.beads} Mukhi Rudraksha</p>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.82rem', marginBottom: '6px' }}>Deity: {rec.deity} · Planet: {rec.planet}</p>
+                      <p style={{ color: '#aed6f1', fontSize: '0.85rem', marginBottom: '8px' }}>{rec.benefit}</p>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem', fontStyle: 'italic' }}>{rec.howToWear}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null
+            )}
+          </section>
+        );
+      })()}
 
       {/* Conditionally Render Horoscope Modal/Section */}
       {selectedZodiac && (

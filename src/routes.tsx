@@ -42,6 +42,13 @@ import { TransitReport } from './pages/TransitReport';
 import { LoveCompatibility } from './pages/LoveCompatibility';
 import { BabyName } from './pages/BabyName';
 import { AIInterpretation } from './pages/AIInterpretation';
+// New features
+import { DivisionalCharts } from './pages/DivisionalCharts';
+import { Ashtakavarga } from './pages/Ashtakavarga';
+import { Varshphal } from './pages/Varshphal';
+import { PlanetaryAspects } from './pages/PlanetaryAspects';
+import { NakshatraEncyclopedia } from './pages/NakshatraEncyclopedia';
+import { FestivalCalendar } from './pages/FestivalCalendar';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
@@ -94,6 +101,12 @@ export const AppRoutes: React.FC = () => (
       <Route path="/love-compatibility" element={<LoveCompatibility />} />
       <Route path="/baby-name" element={<BabyName />} />
       <Route path="/ai-reading" element={<AIInterpretation />} />
+      <Route path="/divisional-charts" element={<DivisionalCharts />} />
+      <Route path="/ashtakavarga" element={<Ashtakavarga />} />
+      <Route path="/varshphal" element={<Varshphal />} />
+      <Route path="/planetary-aspects" element={<PlanetaryAspects />} />
+      <Route path="/nakshatra-encyclopedia" element={<NakshatraEncyclopedia />} />
+      <Route path="/festival-calendar" element={<FestivalCalendar />} />
 
       {/* Protected */}
       <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
