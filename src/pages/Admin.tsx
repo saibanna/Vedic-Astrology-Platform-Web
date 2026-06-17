@@ -8,9 +8,7 @@ import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
 export const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'analytics' | 'api-explorer' | 'master-data'>('analytics');
 
-  const MASTER_CATEGORIES = ['SPECIALTY', 'LANGUAGE', 'CONSULTATION_TYPE', 'REMEDY_TYPE', 'SLOT_DURATION', 'HOROSCOPE'];
-  const [selectedCategory, setSelectedCategory] = useState('SPECIALTY');
-  const [masterItems, setMasterItems] = useState<MasterDataItem[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('SPECIALTY');  const [masterItems, setMasterItems] = useState<MasterDataItem[]>([]);
   const [masterLoading, setMasterLoading] = useState(false);
 
   useEffect(() => {

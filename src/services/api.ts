@@ -47,12 +47,14 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       const skipRedirect = error.config?.headers?.['X-Skip-Auth-Redirect'] === 'true';
-      if (skipRedirect) {
+      // Don't redirect to login for calc/public endpoints — just reject
+      const url: string = error.config?.url || '';
+      const isPublicEndpoint = url.includes('/api/v1/calc/') || url.includes('/api/v1/astrology/') || url.includes('/api/v1/master/');
+      if (skipRedirect || isPublicEndpoint) {
         return Promise.reject(error);
       }
       localStorage.removeItem('vap_token');
       localStorage.removeItem('vap_user');
-      // Redirect to login if appropriate (optional check)
       if (!window.location.pathname.endsWith('/login')) {
         window.location.href = '/login';
       }
@@ -110,4 +112,63 @@ export type MasterDataItem = { id: number; category: string; code: string; label
 
 export const masterDataService = {
   getByCategory: (category: string) => api.get<MasterDataItem[]>(`/api/v1/master/${category}`),
+};
+
+export type GemstoneRequest = {
+  year: number; month: number; day: number;
+  hour: number; minute: number;
+  lat: number; lon: number; tzone: number;
+  concern?: string;
+};
+
+export type GemstoneRecommendation = {
+  rank: number; planet: string; gemstone: string; hindiName: string;
+  substitute: string; metal: string; dayToWear: string; minCaratWeight: number;
+  benefit: string; reason: string; isDasha: boolean;
+};
+
+export type GemstoneResult = {
+  lagna: string; moonSign: string; nakshatra: string; currentDasha: string;
+  recommendations: GemstoneRecommendation[];
+};
+
+export const gemstoneService = {
+  getSuggestion: (data: GemstoneRequest) =>
+    api.post<GemstoneResult>('/api/v1/calc/gemstone-suggestion', data),
+};
+
+// Shared calculator input (all calculators use same birth details)
+export type CalcInput = {
+  year: number; month: number; day: number;
+  hour: number; minute: number;
+  lat: number; lon: number; tzone: number;
+};
+
+export const calculatorService = {
+  manglik:     (d: CalcInput) => api.post('/api/v1/calc/manglik-dosha', d),
+  kaalSarp:    (d: CalcInput) => api.post('/api/v1/calc/kaal-sarp-dosha', d),
+  sadeSati:    (d: CalcInput) => api.post('/api/v1/calc/sade-sati', d),
+  pitraDosha:  (d: CalcInput) => api.post('/api/v1/calc/pitra-dosha', d),
+  nakshatra:   (d: CalcInput) => api.post('/api/v1/calc/nakshatra-finder', d),
+  basicDetails:(d: CalcInput) => api.post('/api/v1/calc/basic-details', d),
+  atmakaraka:  (d: CalcInput) => api.post('/api/v1/calc/atmakaraka', d),
+  rudraksha:   (d: CalcInput) => api.post('/api/v1/calc/rudraksha-suggestion', d),
+  yoginiDasha: (d: CalcInput) => api.post('/api/v1/calc/yogini-dasha', d),
+  kundaliMatch:(d: any)       => api.post('/api/v1/calc/kundali-matching', d),
+  panchang:    (d: { year: number; month: number; day: number; lat: number; lon: number; tzone: number }) =>
+                                  api.post('/api/v1/calc/panchang', d),
+  horoscope:   (sign: string, type: 'daily' | 'monthly' | 'weekly' | 'yearly') => api.post('/api/v1/calc/horoscope', { sign, type }),
+  numerology:  (name: string, dob: string) => api.post('/api/v1/calc/numerology', { name, dob }),
+  biorhythm:   (dob: string, target_date?: string) => api.post('/api/v1/calc/biorhythm', { dob, target_date: target_date || '' }),
+  pdfReport:   (d: CalcInput) => api.post('/api/v1/calc/pdf-report', d, { responseType: 'blob' }),
+  horaMuhurta: (year: number, month: number, day: number) => api.post('/api/v1/calc/hora-muhurta', { year, month, day }),
+  chaughadiya: (year: number, month: number, day: number) => api.post('/api/v1/calc/chaughadiya', { year, month, day }),
+  yearlyHoroscope: (sign: string, year: number) => api.get(`/api/v1/calc/yearly-horoscope?sign=${sign}&year=${year}`),
+  ishtaDevta:  (d: CalcInput) => api.post('/api/v1/calc/ishta-devta', d),
+  dhanYoga:    (d: CalcInput) => api.post('/api/v1/calc/dhan-yoga', d),
+  nameCorrection: (current_name: string, dob: string) => api.post('/api/v1/calc/name-correction', { current_name, dob }),
+  transitReport:  (d: CalcInput) => api.post('/api/v1/calc/transit-report', d),
+  babyName:       (d: CalcInput) => api.post('/api/v1/calc/baby-name', d),
+  loveCompat:     (sign1: string, sign2: string) => api.post('/api/v1/calc/love-compatibility', { sign1, sign2 }),
+  aiInterpret:    (d: CalcInput & { question?: string }) => api.post('/api/v1/calc/ai-interpretation', d),
 };
