@@ -446,113 +446,6 @@ export const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Conditionally Render Birth Chart Output */}
-      {chartResult && (
-        <section className="cosmic-card" style={{ marginTop: '20px' }}>
-          <h2 style={{ fontSize: '2rem', textAlign: 'center', color: 'var(--color-accent-gold-light)', marginBottom: '32px' }}>
-            Your Vedic Birth Parameters
-          </h2>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '24px',
-            marginBottom: '40px'
-          }}>
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--color-border-glass)' }}>
-              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Lagna (Ascendant)</span>
-              <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{chartResult.lagna}</p>
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--color-border-glass)' }}>
-              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Rashi (Moon Sign)</span>
-              <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{chartResult.moonSign}</p>
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--color-border-glass)' }}>
-              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Surya Rashi (Sun Sign)</span>
-              <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{chartResult.sunSign}</p>
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--color-border-glass)' }}>
-              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Janma Nakshatra</span>
-              <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{chartResult.nakshatra}</p>
-            </div>
-          </div>
-
-          <div style={{
-            margin: '40px 0',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '32px',
-            alignItems: 'start'
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
-                Rashi Kundali (D1 Chart)
-              </h3>
-              <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} />
-            </div>
-
-            {navamsaResult && activeFeatures.navamsa_chart && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
-                  Navamsa Kundali (D-9 Chart)
-                </h3>
-                <NavamsaChart navamsaLagna={navamsaResult.navamsaLagna} planets={navamsaResult.planets} />
-              </div>
-            )}
-          </div>
-
-          {dashaResult && activeFeatures.dasha && (
-            <div style={{ margin: '40px 0' }}>
-              <h3 style={{ fontSize: '1.6rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', borderBottom: '1px solid var(--color-border-gold)', paddingBottom: '8px' }}>
-                Vimshottari Dasha Bhukti Periods
-              </h3>
-              <DashaBhuktiTable 
-                nakshatra={dashaResult.nakshatra}
-                nakshatraLord={dashaResult.nakshatraLord}
-                currentDasha={dashaResult.currentDasha}
-                currentBhukti={dashaResult.currentBhukti}
-                dashas={dashaResult.dashas}
-              />
-            </div>
-          )}
-
-          <h3 style={{ fontSize: '1.5rem', marginBottom: '20px', borderBottom: '1px solid var(--color-border-gold)', paddingBottom: '8px' }}>
-            Planetary Positions
-          </h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold)' }}>
-                  <th style={{ padding: '12px' }}>Planet</th>
-                  <th style={{ padding: '12px' }}>Zodiac Sign</th>
-                  <th style={{ padding: '12px' }}>Degree</th>
-                  <th style={{ padding: '12px' }}>House Placement</th>
-                  <th style={{ padding: '12px' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {chartResult.planets.map((planet: any) => (
-                  <tr key={planet.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                    <td style={{ padding: '12px', fontWeight: 500 }}>{planet.name}</td>
-                    <td style={{ padding: '12px' }}>{planet.sign}</td>
-                    <td style={{ padding: '12px' }}>{planet.degree}</td>
-                    <td style={{ padding: '12px' }}>{planet.house} House</td>
-                    <td style={{ padding: '12px' }}>
-                      {planet.retrograde && (
-                        <span style={{ color: '#ff7043', fontWeight: 700, fontSize: '0.85rem' }}>⟲ (R)</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div style={{ marginTop: '40px' }}>
-            <HousePredictions planets={chartResult.planets} lagna={chartResult.lagna} />
-          </div>
-        </section>
-      )}
-
       {/* Calculator Tabs */}
       {calcInput && (() => {
         const TABS = [
@@ -582,7 +475,7 @@ export const Home: React.FC = () => {
         );
 
         return (
-          <section style={{ marginTop: '-20px' }}>
+          <section style={{ marginTop: '20px' }}>
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', borderBottom: '1px solid var(--color-border-glass)', marginBottom: '24px' }}>
               {TABS.map(t => (
@@ -597,6 +490,113 @@ export const Home: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            {/* Tab: Charts & Dasha */}
+            {activeTab === 'chart' && chartResult && (
+              <div className="cosmic-card" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <h2 style={{ fontSize: '2rem', textAlign: 'center', color: 'var(--color-accent-gold-light)', marginBottom: '32px' }}>
+                  Your Vedic Birth Parameters
+                </h2>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '24px',
+                  marginBottom: '40px'
+                }}>
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--color-border-glass)' }}>
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Lagna (Ascendant)</span>
+                    <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{chartResult.lagna}</p>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--color-border-glass)' }}>
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Rashi (Moon Sign)</span>
+                    <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{chartResult.moonSign}</p>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--color-border-glass)' }}>
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Surya Rashi (Sun Sign)</span>
+                    <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{chartResult.sunSign}</p>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--color-border-glass)' }}>
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Janma Nakshatra</span>
+                    <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{chartResult.nakshatra}</p>
+                  </div>
+                </div>
+
+                <div style={{
+                  margin: '40px 0',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                  gap: '32px',
+                  alignItems: 'start'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
+                      Rashi Kundali (D1 Chart)
+                    </h3>
+                    <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} />
+                  </div>
+
+                  {navamsaResult && activeFeatures.navamsa_chart && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
+                        Navamsa Kundali (D-9 Chart)
+                      </h3>
+                      <NavamsaChart navamsaLagna={navamsaResult.navamsaLagna} planets={navamsaResult.planets} />
+                    </div>
+                  )}
+                </div>
+
+                {dashaResult && activeFeatures.dasha && (
+                  <div style={{ margin: '40px 0' }}>
+                    <h3 style={{ fontSize: '1.6rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', borderBottom: '1px solid var(--color-border-gold)', paddingBottom: '8px' }}>
+                      Vimshottari Dasha Bhukti Periods
+                    </h3>
+                    <DashaBhuktiTable 
+                      nakshatra={dashaResult.nakshatra}
+                      nakshatraLord={dashaResult.nakshatraLord}
+                      currentDasha={dashaResult.currentDasha}
+                      currentBhukti={dashaResult.currentBhukti}
+                      dashas={dashaResult.dashas}
+                    />
+                  </div>
+                )}
+
+                <h3 style={{ fontSize: '1.5rem', marginBottom: '20px', borderBottom: '1px solid var(--color-border-gold)', paddingBottom: '8px' }}>
+                  Planetary Positions
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold)' }}>
+                        <th style={{ padding: '12px' }}>Planet</th>
+                        <th style={{ padding: '12px' }}>Zodiac Sign</th>
+                        <th style={{ padding: '12px' }}>Degree</th>
+                        <th style={{ padding: '12px' }}>House Placement</th>
+                        <th style={{ padding: '12px' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {chartResult.planets.map((planet: any) => (
+                        <tr key={planet.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                          <td style={{ padding: '12px', fontWeight: 500 }}>{planet.name}</td>
+                          <td style={{ padding: '12px' }}>{planet.sign}</td>
+                          <td style={{ padding: '12px' }}>{planet.degree}</td>
+                          <td style={{ padding: '12px' }}>{planet.house} House</td>
+                          <td style={{ padding: '12px' }}>
+                            {planet.retrograde && (
+                              <span style={{ color: '#ff7043', fontWeight: 700, fontSize: '0.85rem' }}>⟲ (R)</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ marginTop: '40px' }}>
+                  <HousePredictions planets={chartResult.planets} lagna={chartResult.lagna} />
+                </div>
+              </div>
+            )}
 
             {/* Tab: Doshas */}
             {activeTab === 'doshas' && (
@@ -650,7 +650,7 @@ export const Home: React.FC = () => {
                   {/* Nakshatra */}
                   {calcData.nakshatra.nakshatra && (
                     <div className="cosmic-card" style={{ border: '1px solid var(--color-border-gold)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '16px', textAlign: 'center' }}>
-                      {[['Nakshatra', calcData.nakshatra.nakshatra],['Pada', calcData.nakshatra.pada],['Lord', calcData.nakshatra.lord],['Deity', calcData.nakshatra.deity],['Symbol', calcData.nakshatra.symbol]].map(([k,v]) => (
+                      {[['Nakshatra', calcData.nakshatra.nakshatra.nakshatra],['Pada', calcData.nakshatra.nakshatra.pada],['Lord', calcData.nakshatra.nakshatra.lord],['Deity', calcData.nakshatra.nakshatra.deity],['Symbol', calcData.nakshatra.nakshatra.symbol]].map(([k,v]) => (
                         <div key={k}><p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>{k}</p><p style={{ color: 'var(--color-accent-gold)', fontWeight: 700 }}>{v}</p></div>
                       ))}
                     </div>

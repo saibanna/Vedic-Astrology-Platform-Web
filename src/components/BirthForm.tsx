@@ -54,7 +54,13 @@ export const BirthForm: React.FC<Props> = ({ title, subtitle, onSubmit, loading,
   const selectSuggestion = (place: any) => {
     const lat = parseFloat(place.lat).toFixed(4);
     const lon = parseFloat(place.lon).toFixed(4);
-    const tz  = tzFromLon(parseFloat(lon)).toFixed(1);
+    
+    // Check if the location is in India to force UTC+5.5 (IST)
+    const isIndia = place.address?.country_code === 'in' || 
+                    place.display_name?.toLowerCase().includes('india');
+    const tzVal = isIndia ? 5.5 : tzFromLon(parseFloat(lon));
+    const tz  = tzVal.toFixed(1);
+    
     const label = place.display_name.split(',').slice(0, 3).join(', ');
     setForm(f => ({ ...f, pob: label, lat, lon, tzone: tz }));
     setSuggestions([]);
