@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { astrologyService, calculatorService, masterDataService } from '../services/api';
-import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock } from 'lucide-react';
+import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
@@ -132,39 +132,81 @@ export const Home: React.FC = () => {
 
   const [geoSuggestions, setGeoSuggestions] = useState<any[]>([]);
   const [calcInput, setCalcInput] = useState<any>(null);
+  const skipSearchRef = useRef(false);
 
-  const geocodePob = async () => {
-    if (!formData.pob.trim()) return;
-    setGeoLoading(true); setGeoSuggestions([]);
+  const geocodePob = async (query: string) => {
+    if (!query.trim()) return;
+    setGeoLoading(true);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(formData.pob)}&format=json&limit=5`,
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`,
         { headers: { 'Accept-Language': 'en' } }
       );
       const data = await res.json();
       if (data?.length) {
         setGeoSuggestions(data);
       } else {
-        alert('City not found. Please enter coordinates manually.');
+        setGeoSuggestions([]);
       }
     } catch {
-      alert('Geocoding failed. Please enter coordinates manually.');
+      setGeoSuggestions([]);
     } finally {
       setGeoLoading(false);
     }
   };
 
   const selectGeoSuggestion = (place: any) => {
-    const tzOffset = Math.round(parseFloat(place.lon) / 15 * 2) / 2;
+    const lat = parseFloat(place.lat).toFixed(4);
+    const lon = parseFloat(place.lon).toFixed(4);
+    
+    // Check if the location is in India to force UTC+5.5 (IST)
+    const isIndia = place.address?.country_code === 'in' || 
+                    place.display_name?.toLowerCase().includes('india');
+    const tzVal = isIndia ? 5.5 : Math.round(parseFloat(lon) / 15 * 2) / 2;
+    const tz  = tzVal.toFixed(1);
+
+    const address = place.address || {};
+    const primary = place.name || place.display_name.split(',')[0].trim();
+    const state = address.state || address.region || address.province || '';
+    const country = address.country || '';
+    
+    const labelParts = [primary];
+    if (state && state.toLowerCase() !== primary.toLowerCase()) {
+      labelParts.push(state);
+    }
+    if (country && country.toLowerCase() !== primary.toLowerCase()) {
+      labelParts.push(country);
+    }
+    const label = labelParts.join(', ');
+
+    skipSearchRef.current = true;
     setFormData(f => ({
       ...f,
-      pob: place.display_name.split(',').slice(0, 3).join(', '),
-      lat: parseFloat(place.lat).toFixed(4),
-      lon: parseFloat(place.lon).toFixed(4),
-      tzone: tzOffset.toFixed(1),
+      pob: label,
+      lat,
+      lon,
+      tzone: tz,
     }));
     setGeoSuggestions([]);
   };
+
+  useEffect(() => {
+    if (skipSearchRef.current) {
+      skipSearchRef.current = false;
+      return;
+    }
+
+    if (formData.pob.trim().length < 3) {
+      setGeoSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      geocodePob(formData.pob);
+    }, 600); // 600ms debounce
+
+    return () => clearTimeout(timer);
+  }, [formData.pob]);
 
   const generateKundali = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,7 +252,13 @@ export const Home: React.FC = () => {
     }
   };
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === 'pob') {
+      skipSearchRef.current = false;
+      if (!e.target.value.trim()) {
+        setGeoSuggestions([]);
+      }
+    }
+    setFormData(f => ({ ...f, [e.target.name]: e.target.value }));
   };
 
   const fetchHoroscope = async (sign: string) => {
@@ -318,45 +366,105 @@ export const Home: React.FC = () => {
                 required 
               />
             </div>
-            <div className="form-group">
+            <div className="form-group" style={{ position: 'relative' }}>
               <label>Place of Birth</label>
-              <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <input 
                   type="text" 
                   name="pob" 
                   placeholder="e.g. Mumbai, India" 
                   value={formData.pob} 
                   onChange={handleInputChange}
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), geocodePob())}
                   className="form-input"
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, paddingRight: '40px' }}
                 />
-                <button
-                  type="button"
-                  onClick={geocodePob}
-                  disabled={geoLoading || !formData.pob.trim()}
-                  className="btn-gold"
-                  style={{ whiteSpace: 'nowrap', padding: '0 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Search size={14} /> {geoLoading ? '...' : 'Search'}
-                </button>
+                <div style={{ position: 'absolute', right: '12px', display: 'flex', alignItems: 'center', color: 'var(--color-accent-gold)', opacity: 0.8 }}>
+                  {geoLoading ? (
+                    <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <Search size={16} />
+                  )}
+                </div>
               </div>
               {geoSuggestions.length > 0 && (
-                <div style={{ background: 'rgba(8,9,20,0.98)', border: '1px solid var(--color-border-gold)', borderRadius: '8px', marginTop: '4px', overflow: 'hidden', zIndex: 50, position: 'relative' }}>
-                  {geoSuggestions.map((s, i) => (
-                    <div key={i} onClick={() => selectGeoSuggestion(s)}
-                      style={{ padding: '9px 14px', cursor: 'pointer', fontSize: '0.83rem', color: 'var(--color-text-main)', borderBottom: i < geoSuggestions.length-1 ? '1px solid var(--color-border-glass)' : 'none' }}
-                      onMouseEnter={e => (e.currentTarget.style.background='rgba(212,175,55,0.08)')}
-                      onMouseLeave={e => (e.currentTarget.style.background='transparent')}
-                    >
-                      📍 {s.display_name.split(',').slice(0,4).join(', ')}
-                    </div>
-                  ))}
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  zIndex: 150,
+                  background: 'rgba(10, 11, 28, 0.98)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid var(--color-border-gold)',
+                  borderRadius: '10px',
+                  marginTop: '6px',
+                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.6)',
+                  maxHeight: '260px',
+                  overflowY: 'auto'
+                }}>
+                  {geoSuggestions.map((s, i) => {
+                    const address = s.address || {};
+                    const primary = s.name || s.display_name.split(',')[0].trim();
+                    const state = address.state || address.region || address.province || '';
+                    const country = address.country || '';
+                    
+                    const mainName = primary;
+                    const secondaryParts = [];
+                    if (state && state.toLowerCase() !== primary.toLowerCase()) {
+                      secondaryParts.push(state);
+                    }
+                    if (country && country.toLowerCase() !== primary.toLowerCase()) {
+                      secondaryParts.push(country);
+                    }
+                    const secondaryName = secondaryParts.join(', ');
+                    
+                    return (
+                      <div
+                        key={i}
+                        onClick={() => selectGeoSuggestion(s)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '12px 16px',
+                          cursor: 'pointer',
+                          borderBottom: i < geoSuggestions.length - 1 ? '1px solid var(--color-border-glass)' : 'none',
+                          transition: 'background 0.2s ease',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.background = 'rgba(212,175,55,0.1)';
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          background: 'rgba(212, 175, 55, 0.12)',
+                          flexShrink: 0
+                        }}>
+                          <span style={{ fontSize: '0.9rem' }}>📍</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: 1, justifyContent: 'center' }}>
+                          <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
+                            {mainName}
+                          </span>
+                          {secondaryName && (
+                            <span style={{ color: 'var(--color-text-muted)', fontSize: '0.76rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
+                              {secondaryName}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-              <small style={{ color: 'var(--color-text-muted)', marginTop: '4px', display: 'block' }}>
-                Type city and click Search to auto-fill coordinates
-              </small>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>

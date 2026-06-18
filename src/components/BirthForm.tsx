@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, Loader, MapPin, Search } from 'lucide-react';
 import type { CalcInput } from '../services/api';
 
@@ -24,24 +24,32 @@ export const BirthForm: React.FC<Props> = ({ title, subtitle, onSubmit, loading,
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const skipSearchRef = useRef(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.name === 'pob') {
+      skipSearchRef.current = false;
+      setGeoError('');
+      if (!e.target.value.trim()) {
+        setSuggestions([]);
+      }
+    }
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
-    if (e.target.name === 'pob') { setSuggestions([]); setGeoError(''); }
   };
 
-  const searchCity = async () => {
-    if (!form.pob.trim()) return;
-    setGeoLoading(true); setGeoError(''); setSuggestions([]);
+  const searchCity = async (query: string) => {
+    if (!query.trim()) return;
+    setGeoLoading(true); setGeoError('');
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(form.pob)}&format=json&limit=5&addressdetails=1`,
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`,
         { headers: { 'Accept-Language': 'en' } }
       );
       const data = await res.json();
       if (data?.length) {
         setSuggestions(data);
       } else {
+        setSuggestions([]);
         setGeoError('City not found. Try a different spelling or enter coordinates manually.');
       }
     } catch {
@@ -61,10 +69,42 @@ export const BirthForm: React.FC<Props> = ({ title, subtitle, onSubmit, loading,
     const tzVal = isIndia ? 5.5 : tzFromLon(parseFloat(lon));
     const tz  = tzVal.toFixed(1);
     
-    const label = place.display_name.split(',').slice(0, 3).join(', ');
+    const address = place.address || {};
+    const primary = place.name || place.display_name.split(',')[0].trim();
+    const state = address.state || address.region || address.province || '';
+    const country = address.country || '';
+
+    const labelParts = [primary];
+    if (state && state.toLowerCase() !== primary.toLowerCase()) {
+      labelParts.push(state);
+    }
+    if (country && country.toLowerCase() !== primary.toLowerCase()) {
+      labelParts.push(country);
+    }
+    const label = labelParts.join(', ');
+
+    skipSearchRef.current = true;
     setForm(f => ({ ...f, pob: label, lat, lon, tzone: tz }));
     setSuggestions([]);
   };
+
+  useEffect(() => {
+    if (skipSearchRef.current) {
+      skipSearchRef.current = false;
+      return;
+    }
+
+    if (form.pob.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      searchCity(form.pob);
+    }, 600); // 600ms debounce
+
+    return () => clearTimeout(timer);
+  }, [form.pob]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,40 +140,102 @@ export const BirthForm: React.FC<Props> = ({ title, subtitle, onSubmit, loading,
         {/* Place of birth with search */}
         <div style={{ position: 'relative' }}>
           <label style={labelStyle}><MapPin size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />Place of Birth</label>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <input
               name="pob"
               value={form.pob}
               onChange={handleChange}
-              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchCity())}
               placeholder="e.g. Mumbai, India"
-              style={inputStyle}
+              style={{ ...inputStyle, paddingRight: '40px' }}
             />
-            <button
-              type="button"
-              onClick={searchCity}
-              disabled={geoLoading}
-              style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid var(--color-border-gold)', borderRadius: '8px', padding: '0 14px', cursor: 'pointer', color: 'var(--color-accent-gold)', flexShrink: 0 }}
-            >
-              {geoLoading ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={16} />}
-            </button>
+            <div style={{ position: 'absolute', right: '12px', display: 'flex', alignItems: 'center', color: 'var(--color-accent-gold)', opacity: 0.8 }}>
+              {geoLoading ? (
+                <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Search size={16} />
+              )}
+            </div>
           </div>
 
           {/* Dropdown suggestions */}
           {suggestions.length > 0 && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: 'rgba(8,9,20,0.98)', border: '1px solid var(--color-border-gold)', borderRadius: '8px', marginTop: '4px', overflow: 'hidden' }}>
-              {suggestions.map((s, i) => (
-                <div
-                  key={i}
-                  onClick={() => selectSuggestion(s)}
-                  style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '1px solid var(--color-border-glass)' : 'none', fontSize: '0.85rem', color: 'var(--color-text-main)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(212,175,55,0.08)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <span style={{ color: 'var(--color-accent-gold)', marginRight: '6px' }}>📍</span>
-                  {s.display_name.split(',').slice(0, 4).join(', ')}
-                </div>
-              ))}
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              zIndex: 150,
+              background: 'rgba(10, 11, 28, 0.98)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid var(--color-border-gold)',
+              borderRadius: '10px',
+              marginTop: '6px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.6)',
+              maxHeight: '260px',
+              overflowY: 'auto',
+              borderTop: 'none'
+            }}>
+               {suggestions.map((s, i) => {
+                const address = s.address || {};
+                const primary = s.name || s.display_name.split(',')[0].trim();
+                const state = address.state || address.region || address.province || '';
+                const country = address.country || '';
+                
+                const mainName = primary;
+                const secondaryParts = [];
+                if (state && state.toLowerCase() !== primary.toLowerCase()) {
+                  secondaryParts.push(state);
+                }
+                if (country && country.toLowerCase() !== primary.toLowerCase()) {
+                  secondaryParts.push(country);
+                }
+                const secondaryName = secondaryParts.join(', ');
+                
+                return (
+                  <div
+                    key={i}
+                    onClick={() => selectSuggestion(s)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      cursor: 'pointer',
+                      borderBottom: i < suggestions.length - 1 ? '1px solid var(--color-border-glass)' : 'none',
+                      transition: 'background 0.2s ease',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(212,175,55,0.1)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: 'rgba(212, 175, 55, 0.12)',
+                      flexShrink: 0
+                    }}>
+                      <MapPin size={14} color="var(--color-accent-gold)" />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: 1, justifyContent: 'center' }}>
+                      <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {mainName}
+                      </span>
+                      {secondaryName && (
+                        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.76rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {secondaryName}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
