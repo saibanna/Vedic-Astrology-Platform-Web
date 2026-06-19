@@ -561,7 +561,7 @@ export const Home: React.FC = () => {
         const TABS = [
           { id: 'chart',    label: 'Charts & Dasha', icon: <Compass size={15} /> },
           { id: 'doshas',   label: 'Dosha Report',   icon: <ShieldAlert size={15} /> },
-          { id: 'lalkitab', label: 'Lal Kitab Remedies', icon: <Scroll size={15} /> },
+          // { id: 'lalkitab', label: 'Lal Kitab Remedies', icon: <Scroll size={15} /> },
           { id: 'gemstone', label: 'Gemstone',        icon: <Gem size={15} /> },
           { id: 'nakshatra',label: 'Nakshatra & Yogas',icon: <Star size={15} /> },
           { id: 'transit',  label: 'Transit Report',  icon: <Clock size={15} /> },

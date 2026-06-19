@@ -6,7 +6,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { type RootState, logout } from '../store';
 // HIDDEN NAV — uncomment these imports when re-enabling menu groups (see docs/hidden-menu-items.md)
 // import { Compass, Calendar, ShoppingBag, MessageSquare, ShieldAlert, LogOut, LogIn, User, ChevronDown, Sun } from 'lucide-react';
-import { Compass, LogOut, LogIn, User } from 'lucide-react';
+import { Compass, LogOut, LogIn, User, ShieldAlert } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -175,8 +175,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <ShieldAlert size={16} /> Admin
               </Link>
             )}
-          </div>
-          */}
+           {/* Admin Navigation link (visible only when logged in as admin) */}
+          {isAuthenticated && user?.role === 'ADMIN' && (
+            <Link to="/admin" style={{
+              color: window.location.pathname === '/admin' ? 'var(--color-accent-gold)' : 'var(--color-text-main)',
+              display: 'flex', alignItems: 'center', gap: '6px',
+              fontWeight: 600, fontSize: '0.9rem', padding: '8px 14px',
+              borderRadius: '8px',
+              background: window.location.pathname === '/admin' ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
+              border: `1px solid ${window.location.pathname === '/admin' ? 'var(--color-accent-gold)' : 'transparent'}`,
+              transition: 'all 0.2s',
+              marginRight: 'auto',
+              marginLeft: '20px'
+            }}>
+              <ShieldAlert size={16} /> Admin Panel
+            </Link>
+          )}
 
           {/* Auth */}
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>

@@ -194,3 +194,21 @@ export const calculatorService = {
   planetaryAspects:(d: CalcInput) => api.post('/api/v1/astrology/calc/planetary-aspects', d),
   lalkitab:        (d: CalcInput) => api.post<LalKitabResult>('/api/v1/astrology/calc/lalkitab-remedies', d),
 };
+
+export type LalKitabRemedyDbItem = {
+  id: number;
+  graha: string;
+  house: number;
+  benefic: string;
+  malefic: string;
+  remedies: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export const lalkitabAdminService = {
+  getLalKitabList: () => api.get<LalKitabRemedyDbItem[]>('/api/v1/remedies/lalkitab'),
+  updateLalKitabItem: (id: number, data: Partial<LalKitabRemedyDbItem>) =>
+    api.put<LalKitabRemedyDbItem>(`/api/v1/remedies/lalkitab/${id}`, data),
+};
+

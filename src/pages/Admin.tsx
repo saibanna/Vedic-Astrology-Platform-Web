@@ -1,12 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, LineChart, ShieldAlert, Award, Calendar, CircleDollarSign, Terminal, Send, Play, FileJson, Eye, Database } from 'lucide-react';
-import { api, masterDataService, type MasterDataItem } from '../services/api';
+import { Compass, LineChart, ShieldAlert, Award, Calendar, CircleDollarSign, Terminal, Send, Play, FileJson, Eye, Database, Scroll, Edit3, Search } from 'lucide-react';
+import { api, masterDataService, lalkitabAdminService, type MasterDataItem, type LalKitabRemedyDbItem } from '../services/api';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
 
 export const Admin: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'api-explorer' | 'master-data' | 'features'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'api-explorer' | 'master-data' | 'features' | 'lalkitab'>('analytics');
+
+  const [lalkitabRemedies, setLalkitabRemedies] = useState<LalKitabRemedyDbItem[]>([]);
+  const [loadingLalkitab, setLoadingLalkitab] = useState(false);
+  const [lalkitabSearch, setLalkitabSearch] = useState('');
+  const [selectedPlanetFilter, setSelectedPlanetFilter] = useState<string>('ALL');
+  const [selectedHouseFilter, setSelectedHouseFilter] = useState<string>('ALL');
+  
+  // Modal states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingRemedy, setEditingRemedy] = useState<LalKitabRemedyDbItem | null>(null);
+  const [editBenefic, setEditBenefic] = useState('');
+  const [editMalefic, setEditMalefic] = useState('');
+  const [editRemediesText, setEditRemediesText] = useState('');
+  const [isSavingRemedy, setIsSavingRemedy] = useState(false);
 
   const [features, setFeatures] = useState<MasterDataItem[]>([]);
   const [loadingFeatures, setLoadingFeatures] = useState(false);
@@ -21,6 +35,54 @@ export const Admin: React.FC = () => {
       console.error('Failed to load feature flags', err);
     } finally {
       setLoadingFeatures(false);
+    }
+  };
+
+  const fetchLalkitabRemedies = async () => {
+    setLoadingLalkitab(true);
+    try {
+      const res = await lalkitabAdminService.getLalKitabList();
+      const sorted = [...res.data].sort((a, b) => {
+        if (a.graha !== b.graha) {
+          return a.graha.localeCompare(b.graha);
+        }
+        return a.house - b.house;
+      });
+      setLalkitabRemedies(sorted);
+    } catch (err) {
+      console.error('Failed to load Lal Kitab remedies', err);
+    } finally {
+      setLoadingLalkitab(false);
+    }
+  };
+
+  const handleOpenEditModal = (item: LalKitabRemedyDbItem) => {
+    setEditingRemedy(item);
+    setEditBenefic(item.benefic || '');
+    setEditMalefic(item.malefic || '');
+    setEditRemediesText(item.remedies || '');
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveRemedy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRemedy) return;
+    setIsSavingRemedy(true);
+    try {
+      const updated = await lalkitabAdminService.updateLalKitabItem(editingRemedy.id, {
+        benefic: editBenefic,
+        malefic: editMalefic,
+        remedies: editRemediesText
+      });
+      setLalkitabRemedies(prev => prev.map(item => item.id === editingRemedy.id ? updated.data : item));
+      setIsEditModalOpen(false);
+      setEditingRemedy(null);
+      alert('Lal Kitab remedy updated successfully!');
+    } catch (err) {
+      console.error('Failed to update remedy', err);
+      alert('Failed to update remedy. Please check backend services.');
+    } finally {
+      setIsSavingRemedy(false);
     }
   };
 
@@ -81,6 +143,8 @@ export const Admin: React.FC = () => {
         .finally(() => setMasterLoading(false));
     } else if (activeTab === 'features') {
       fetchFeatures();
+    } else if (activeTab === 'lalkitab') {
+      fetchLalkitabRemedies();
     }
   }, [activeTab, selectedCategory]);
 
@@ -368,6 +432,25 @@ export const Admin: React.FC = () => {
           }}
         >
           <Database size={18} /> Master Data
+        </button>
+        <button 
+          onClick={() => setActiveTab('lalkitab')}
+          style={{
+            background: activeTab === 'lalkitab' ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
+            border: `1px solid ${activeTab === 'lalkitab' ? 'var(--color-accent-gold)' : 'transparent'}`,
+            color: activeTab === 'lalkitab' ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          <Scroll size={18} /> Lal Kitab Manager
         </button>
       </div>
 
@@ -1016,6 +1099,277 @@ export const Admin: React.FC = () => {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === 'lalkitab' && (() => {
+        const filteredRemedies = lalkitabRemedies.filter(item => {
+          const matchPlanet = selectedPlanetFilter === 'ALL' || item.graha === selectedPlanetFilter;
+          const matchHouse = selectedHouseFilter === 'ALL' || item.house.toString() === selectedHouseFilter;
+          
+          const searchLower = lalkitabSearch.toLowerCase();
+          const matchSearch = !searchLower || 
+            item.graha.toLowerCase().includes(searchLower) ||
+            item.benefic.toLowerCase().includes(searchLower) ||
+            item.malefic.toLowerCase().includes(searchLower) ||
+            item.remedies.toLowerCase().includes(searchLower);
+            
+          return matchPlanet && matchHouse && matchSearch;
+        });
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Filter Bar */}
+            <div className="cosmic-card" style={{ padding: '20px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
+              <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Planet (Graha)</label>
+                <select 
+                  value={selectedPlanetFilter} 
+                  onChange={(e) => setSelectedPlanetFilter(e.target.value)}
+                  className="form-input"
+                  style={{ background: 'rgba(5, 6, 15, 0.8)', border: '1px solid var(--color-border-glass)' }}
+                >
+                  <option value="ALL">All Planets</option>
+                  <option value="SUN">Sun (Surya)</option>
+                  <option value="MOON">Moon (Chandra)</option>
+                  <option value="MARS">Mars (Mangal)</option>
+                  <option value="MERCURY">Mercury (Budh)</option>
+                  <option value="JUPITER">Jupiter (Guru)</option>
+                  <option value="VENUS">Venus (Shukra)</option>
+                  <option value="SATURN">Saturn (Shani)</option>
+                  <option value="RAHU">Rahu</option>
+                  <option value="KETU">Ketu</option>
+                </select>
+              </div>
+
+              <div style={{ flex: '1 1 150px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>House (Bhava)</label>
+                <select 
+                  value={selectedHouseFilter} 
+                  onChange={(e) => setSelectedHouseFilter(e.target.value)}
+                  className="form-input"
+                  style={{ background: 'rgba(5, 6, 15, 0.8)', border: '1px solid var(--color-border-glass)' }}
+                >
+                  <option value="ALL">All Houses</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(h => (
+                    <option key={h} value={h.toString()}>House {h}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ flex: '2 1 300px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Search Text</label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type="text" 
+                    value={lalkitabSearch}
+                    onChange={(e) => setLalkitabSearch(e.target.value)}
+                    placeholder="Search remedies, benefic, or malefic texts..." 
+                    className="form-input"
+                    style={{ background: 'rgba(5, 6, 15, 0.8)', border: '1px solid var(--color-border-glass)', paddingLeft: '36px' }}
+                  />
+                  <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Records Table */}
+            <div className="cosmic-card" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '1.5rem', color: 'var(--color-accent-gold)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Scroll size={20} /> Lal Kitab Remedies Database ({filteredRemedies.length})
+                </h2>
+              </div>
+
+              {loadingLalkitab ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                  Fetching remedies from database...
+                </div>
+              ) : filteredRemedies.length === 0 ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                  No remedies match the selected filters.
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto', maxHeight: '600px', overflowY: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold-light)', position: 'sticky', top: 0, background: '#090a15', zIndex: 1 }}>
+                        <th style={{ padding: '12px', width: '120px' }}>Planet</th>
+                        <th style={{ padding: '12px', width: '100px' }}>House</th>
+                        <th style={{ padding: '12px' }}>Benefic Results</th>
+                        <th style={{ padding: '12px' }}>Malefic Results</th>
+                        <th style={{ padding: '12px' }}>Remedies</th>
+                        <th style={{ padding: '12px', width: '80px', textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRemedies.map((item) => (
+                        <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', verticalAlign: 'top' }}>
+                          <td style={{ padding: '12px', fontWeight: 600, color: '#fff' }}>{item.graha}</td>
+                          <td style={{ padding: '12px', color: 'var(--color-accent-gold)' }}>House {item.house}</td>
+                          <td style={{ padding: '12px', color: 'var(--color-text-muted)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.benefic}>
+                            {item.benefic || '—'}
+                          </td>
+                          <td style={{ padding: '12px', color: 'var(--color-text-muted)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.malefic}>
+                            {item.malefic || '—'}
+                          </td>
+                          <td style={{ padding: '12px', color: 'var(--color-text-muted)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.remedies}>
+                            {item.remedies || '—'}
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'right' }}>
+                            <button
+                              onClick={() => handleOpenEditModal(item)}
+                              className="btn-outline"
+                              style={{
+                                padding: '4px 10px',
+                                fontSize: '0.8rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                borderRadius: '6px'
+                              }}
+                            >
+                              <Edit3 size={12} /> Edit
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Lal Kitab Edit Modal */}
+      {isEditModalOpen && editingRemedy && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(5, 6, 15, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div className="cosmic-card" style={{
+            width: '100%',
+            maxWidth: '800px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '30px',
+            border: '1px solid var(--color-accent-gold)',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-glass)', paddingBottom: '15px' }}>
+              <h3 style={{ fontSize: '1.4rem', color: 'var(--color-accent-gold)', margin: 0 }}>
+                Edit Lal Kitab Remedy: {editingRemedy.graha} in House {editingRemedy.house}
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setIsEditModalOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  padding: '0 5px'
+                }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRemedy} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Benefic Effects</label>
+                <textarea
+                  value={editBenefic}
+                  onChange={(e) => setEditBenefic(e.target.value)}
+                  className="form-input"
+                  style={{
+                    height: '120px',
+                    width: '100%',
+                    background: 'rgba(5,6,15,0.8)',
+                    border: '1px solid var(--color-border-glass)',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.4'
+                  }}
+                  placeholder="Enter benefic effects..."
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Malefic Effects</label>
+                <textarea
+                  value={editMalefic}
+                  onChange={(e) => setEditMalefic(e.target.value)}
+                  className="form-input"
+                  style={{
+                    height: '120px',
+                    width: '100%',
+                    background: 'rgba(5,6,15,0.8)',
+                    border: '1px solid var(--color-border-glass)',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.4'
+                  }}
+                  placeholder="Enter malefic effects..."
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Remedies (Format each remedy as a separate line or bullet)</label>
+                <textarea
+                  value={editRemediesText}
+                  onChange={(e) => setEditRemediesText(e.target.value)}
+                  className="form-input"
+                  style={{
+                    height: '150px',
+                    width: '100%',
+                    background: 'rgba(5,6,15,0.8)',
+                    border: '1px solid var(--color-border-glass)',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.4'
+                  }}
+                  placeholder="Enter remedies..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid var(--color-border-glass)', paddingTop: '15px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="btn-outline"
+                  style={{ padding: '8px 20px', borderRadius: '6px' }}
+                  disabled={isSavingRemedy}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-gold"
+                  style={{ padding: '8px 25px', borderRadius: '6px' }}
+                  disabled={isSavingRemedy}
+                >
+                  {isSavingRemedy ? 'Saving Changes...' : 'Save Remedy'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
