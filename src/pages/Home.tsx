@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { astrologyService, calculatorService, masterDataService } from '../services/api';
-import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader } from 'lucide-react';
+import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
@@ -119,6 +119,8 @@ export const Home: React.FC = () => {
         res = (await calculatorService.transitReport(input)).data;
       } else if (tab === 'rudraksha') {
         res = (await calculatorService.rudraksha(input)).data;
+      } else if (tab === 'lalkitab') {
+        res = (await calculatorService.lalkitab(input)).data;
       }
       setCalcData(d => ({ ...d, [tab]: res }));
     } catch { /* silent — tab shows error state */ }
@@ -559,6 +561,7 @@ export const Home: React.FC = () => {
         const TABS = [
           { id: 'chart',    label: 'Charts & Dasha', icon: <Compass size={15} /> },
           { id: 'doshas',   label: 'Dosha Report',   icon: <ShieldAlert size={15} /> },
+          { id: 'lalkitab', label: 'Lal Kitab Remedies', icon: <Scroll size={15} /> },
           { id: 'gemstone', label: 'Gemstone',        icon: <Gem size={15} /> },
           { id: 'nakshatra',label: 'Nakshatra & Yogas',icon: <Star size={15} /> },
           { id: 'transit',  label: 'Transit Report',  icon: <Clock size={15} /> },
@@ -833,6 +836,88 @@ export const Home: React.FC = () => {
                   ))}
                 </div>
               ) : null
+            )}
+
+            {/* Tab: Lal Kitab Remedies */}
+            {activeTab === 'lalkitab' && (
+              calcLoading.lalkitab ? <TabLoader /> :
+              calcData.lalkitab?.remedies ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                    Lal Kitab remedies are based on the house placement of planets in your birth chart.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+                    {calcData.lalkitab.remedies.map((item: any) => (
+                      <div key={item.planet} className="cosmic-card" style={{ border: '1px solid var(--color-border-glass)', padding: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid var(--color-border-glass)', paddingBottom: '14px', marginBottom: '16px' }}>
+                          <div>
+                            <h3 style={{ color: 'var(--color-accent-gold-light)', fontSize: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Sparkles size={16} /> {item.planet}
+                            </h3>
+                            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: '2px' }}>
+                              Sign: {item.sign} · Degree: {item.degree}
+                            </p>
+                          </div>
+                          <span style={{
+                            background: 'rgba(212,175,55,0.1)',
+                            border: '1px solid var(--color-border-gold)',
+                            color: 'var(--color-accent-gold)',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            padding: '4px 12px',
+                            borderRadius: '20px'
+                          }}>
+                            House {item.house}
+                          </span>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
+                          {item.benefic && (
+                            <div>
+                              <strong style={{ color: '#4caf50', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                                ✓ Benefic Placements
+                              </strong>
+                              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.84rem', lineHeight: '1.6' }}>
+                                {item.benefic}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {item.malefic && (
+                            <div>
+                              <strong style={{ color: '#ff7070', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                                ⚠ Malefic Placements
+                              </strong>
+                              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.84rem', lineHeight: '1.6' }}>
+                                {item.malefic}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {item.remedies && item.remedies.length > 0 && (
+                          <div style={{ marginTop: '20px', background: 'rgba(212, 175, 55, 0.03)', border: '1px solid rgba(212, 175, 55, 0.1)', borderRadius: '8px', padding: '16px' }}>
+                            <strong style={{ color: 'var(--color-accent-gold)', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                              <Scroll size={14} /> Prescribed Remedies
+                            </strong>
+                            <ul style={{ paddingLeft: '16px', margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {item.remedies.map((rem: string, idx: number) => (
+                                <li key={idx} style={{ color: '#eef2f3', fontSize: '0.85rem', lineHeight: '1.5', listStyleType: 'circle' }}>
+                                  {rem}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)' }}>
+                  No Lal Kitab remedies found.
+                </div>
+              )
             )}
           </section>
         );

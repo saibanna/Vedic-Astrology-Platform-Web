@@ -139,6 +139,20 @@ export const gemstoneService = {
     api.post<GemstoneResult>('/api/v1/astrology/calc/gemstone-suggestion', data),
 };
 
+export type LalKitabRemedyItem = {
+  planet: string;
+  house: number;
+  sign: string;
+  degree: string;
+  benefic: string;
+  malefic: string;
+  remedies: string[];
+};
+
+export type LalKitabResult = {
+  remedies: LalKitabRemedyItem[];
+};
+
 // Shared calculator input (all calculators use same birth details)
 export type CalcInput = {
   year: number; month: number; day: number;
@@ -178,4 +192,5 @@ export const calculatorService = {
   ashtakavarga:   (d: CalcInput) => api.post('/api/v1/astrology/calc/ashtakavarga', d),
   varshphal:      (d: CalcInput) => api.post('/api/v1/astrology/calc/varshphal', d),
   planetaryAspects:(d: CalcInput) => api.post('/api/v1/astrology/calc/planetary-aspects', d),
+  lalkitab:        (d: CalcInput) => api.post<LalKitabResult>('/api/v1/astrology/calc/lalkitab-remedies', d),
 };
