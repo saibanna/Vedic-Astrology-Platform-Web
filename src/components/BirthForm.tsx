@@ -19,6 +19,30 @@ const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '6px',
 // Approximate timezone offset from longitude
 const tzFromLon = (lon: number): number => Math.round(lon / 15 * 2) / 2;
 
+// Normalize suggestion results from either Open-Meteo or OpenStreetMap Nominatim
+const normalizePlace = (place: any) => {
+  if (place.latitude !== undefined && place.longitude !== undefined) {
+    const lat = parseFloat(place.latitude).toFixed(4);
+    const lon = parseFloat(place.longitude).toFixed(4);
+    const countryCode = (place.country_code || '').toLowerCase();
+    const isIndia = countryCode === 'in' || (place.country || '').toLowerCase().includes('india');
+    const primary = place.name || '';
+    const state = place.admin1 || '';
+    const country = place.country || '';
+    return { lat, lon, isIndia, primary, state, country };
+  }
+  
+  const lat = parseFloat(place.lat || '0').toFixed(4);
+  const lon = parseFloat(place.lon || '0').toFixed(4);
+  const address = place.address || {};
+  const countryCode = (address.country_code || '').toLowerCase();
+  const isIndia = countryCode === 'in' || place.display_name?.toLowerCase().includes('india');
+  const primary = place.name || place.display_name?.split(',')[0].trim() || '';
+  const state = address.state || address.region || address.province || '';
+  const country = address.country || '';
+  return { lat, lon, isIndia, primary, state, country };
+};
+
 export const BirthForm: React.FC<Props> = ({ title, subtitle, onSubmit, loading, error }) => {
   const [form, setForm] = useState({ dob: '', tob: '12:00', pob: '', lat: '', lon: '', tzone: '' });
   const [geoLoading, setGeoLoading] = useState(false);
@@ -41,39 +65,56 @@ export const BirthForm: React.FC<Props> = ({ title, subtitle, onSubmit, loading,
     if (!query.trim()) return;
     setGeoLoading(true); setGeoError('');
     try {
+      // Try Open-Meteo Geocoding API first (fast, reliable, no IP blocking)
       const res = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`
+      );
+      const data = await res.json();
+      if (data?.results?.length) {
+        setSuggestions(data.results);
+        return;
+      }
+      
+      // Fallback 1: OpenStreetMap Nominatim
+      const resNom = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`,
         { headers: { 'Accept-Language': 'en' } }
       );
-      const data = await res.json();
-      if (data?.length) {
-        setSuggestions(data);
+      const dataNom = await resNom.json();
+      if (dataNom?.length) {
+        setSuggestions(dataNom);
       } else {
         setSuggestions([]);
         setGeoError('City not found. Try a different spelling or enter coordinates manually.');
       }
-    } catch {
-      setGeoError('Location lookup failed. Please enter coordinates manually.');
+    } catch (err) {
+      // Fallback 2: Direct Nominatim attempt on Open-Meteo failure
+      try {
+        const resNom = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
+        const dataNom = await resNom.json();
+        if (dataNom?.length) {
+          setSuggestions(dataNom);
+        } else {
+          setSuggestions([]);
+          setGeoError('City not found. Try a different spelling or enter coordinates manually.');
+        }
+      } catch {
+        setSuggestions([]);
+        setGeoError('Location lookup failed. Please enter coordinates manually.');
+      }
     } finally {
       setGeoLoading(false);
     }
   };
 
   const selectSuggestion = (place: any) => {
-    const lat = parseFloat(place.lat).toFixed(4);
-    const lon = parseFloat(place.lon).toFixed(4);
-    
-    // Check if the location is in India to force UTC+5.5 (IST)
-    const isIndia = place.address?.country_code === 'in' || 
-                    place.display_name?.toLowerCase().includes('india');
+    const { lat, lon, isIndia, primary, state, country } = normalizePlace(place);
     const tzVal = isIndia ? 5.5 : tzFromLon(parseFloat(lon));
     const tz  = tzVal.toFixed(1);
     
-    const address = place.address || {};
-    const primary = place.name || place.display_name.split(',')[0].trim();
-    const state = address.state || address.region || address.province || '';
-    const country = address.country || '';
-
     const labelParts = [primary];
     if (state && state.toLowerCase() !== primary.toLowerCase()) {
       labelParts.push(state);
@@ -176,10 +217,7 @@ export const BirthForm: React.FC<Props> = ({ title, subtitle, onSubmit, loading,
               borderTop: 'none'
             }}>
                {suggestions.map((s, i) => {
-                const address = s.address || {};
-                const primary = s.name || s.display_name.split(',')[0].trim();
-                const state = address.state || address.region || address.province || '';
-                const country = address.country || '';
+                const { primary, state, country } = normalizePlace(s);
                 
                 const mainName = primary;
                 const secondaryParts = [];
