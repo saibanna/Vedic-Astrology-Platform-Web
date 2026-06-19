@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+// HIDDEN NAV — uncomment when re-enabling menu groups
+// import { useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState, logout } from '../store';
-import { Compass, Calendar, ShoppingBag, MessageSquare, ShieldAlert, LogOut, LogIn, User, ChevronDown, Sun } from 'lucide-react';
+// HIDDEN NAV — uncomment these imports when re-enabling menu groups (see docs/hidden-menu-items.md)
+// import { Compass, Calendar, ShoppingBag, MessageSquare, ShieldAlert, LogOut, LogIn, User, ChevronDown, Sun } from 'lucide-react';
+import { Compass, LogOut, LogIn, User } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
+/* HIDDEN NAV_GROUPS — uncomment when re-enabling menu dropdowns (see docs/hidden-menu-items.md)
 const NAV_GROUPS = [
   {
     label: 'Kundali', icon: <Compass size={16} />,
@@ -72,17 +77,21 @@ const NAV_GROUPS = [
     ],
   },
 ];
+*/
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  // HIDDEN NAV — uncomment when re-enabling menu groups
+  // const location = useLocation();
+  // HIDDEN NAV — uncomment when re-enabling menu groups
+  // const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const handleLogout = () => { dispatch(logout()); navigate('/login'); };
-  const isActive = (path: string) => location.pathname === path;
-  const groupActive = (links: { to: string }[]) => links.some(l => isActive(l.to));
+  // HIDDEN NAV — uncomment when re-enabling menu groups
+  // const isActive = (path: string) => location.pathname === path;
+  // const groupActive = (links: { to: string }[]) => links.some(l => isActive(l.to));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -106,7 +115,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: 'bold', color: '#fff', letterSpacing: '0.1em' }}>VEDAASTRO</span>
           </Link>
 
-          {/* Dropdown Nav Groups */}
+          {/* HIDDEN NAV GROUPS — see docs/hidden-menu-items.md for the full inventory.
+             To re-enable, uncomment the block below and optionally filter NAV_GROUPS. */}
+          {/*
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
             {NAV_GROUPS.map(group => (
               <div key={group.label} style={{ position: 'relative' }}
@@ -165,6 +176,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Link>
             )}
           </div>
+          */}
 
           {/* Auth */}
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
