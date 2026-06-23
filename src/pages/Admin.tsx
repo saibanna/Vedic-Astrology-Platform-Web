@@ -454,7 +454,7 @@ export const Admin: React.FC = () => {
         </button>
       </div>
 
-      {activeTab === 'analytics' ? (
+      {activeTab === 'analytics' && (
         <>
           {/* Metrics Row */}
           <div style={{
@@ -556,10 +556,12 @@ export const Admin: React.FC = () => {
 
           </div>
         </>
-      ) : activeTab === 'master-data' ? (
+      )}
+
+      {activeTab === 'master-data' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {['SPECIALTY','LANGUAGE','CONSULTATION_TYPE','REMEDY_TYPE','SLOT_DURATION','HOROSCOPE','FEATURE'].map(cat => (
+            {['SPECIALTY','LANGUAGE','CONSULTATION_TYPE','REMEDY_TYPE','SLOT_DURATION','HOROSCOPE'].map(cat => (
               <button key={cat} onClick={() => setSelectedCategory(cat)} style={{
                 background: selectedCategory === cat ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)',
                 border: `1px solid ${selectedCategory === cat ? 'var(--color-accent-gold)' : 'var(--color-border-glass)'}`,
@@ -581,14 +583,14 @@ export const Admin: React.FC = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold-light)' }}>
-                    {['Code','Label','Description','Order','Status', ...(selectedCategory === 'FEATURE' ? ['Action'] : [])].map(h => (
-                      <th key={h} style={{ padding: '10px', textAlign: h === 'Action' ? 'right' : 'left' }}>{h}</th>
+                    {['Code','Label','Description','Order','Status'].map(h => (
+                      <th key={h} style={{ padding: '10px' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {(selectedCategory === 'FEATURE' ? getGroupedFeatures(masterItems) : masterItems.map(item => ({ item, isChild: false }))).map(({ item, isChild }) => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', opacity: item.isActive ? 1 : 0.45, background: isChild ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                  {masterItems.map(item => ({ item, isChild: false })).map(({ item, isChild }) => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', opacity: item.isActive ? 1 : 0.45 }}>
                       <td style={{ padding: '10px', fontFamily: 'monospace', color: 'var(--color-accent-gold-light)' }}>{item.code}</td>
                       <td style={{ padding: '10px', fontWeight: 600, paddingLeft: isChild ? '32px' : '10px' }}>
                         {isChild && <span style={{ color: 'var(--color-accent-gold)', marginRight: '8px', opacity: 0.6 }}>↳</span>}
@@ -619,23 +621,7 @@ export const Admin: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      {selectedCategory === 'FEATURE' && (
-                        <td style={{ padding: '10px', textAlign: 'right' }}>
-                          <button
-                            onClick={() => handleToggle(item.code)}
-                            disabled={togglingCode === item.code}
-                            style={{
-                              background: item.isActive ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
-                              border: `1px solid ${item.isActive ? '#ef4444' : '#22c55e'}`,
-                              color: item.isActive ? '#ef4444' : '#22c55e',
-                              borderRadius: '6px', padding: '4px 12px', fontSize: '0.75rem', fontWeight: 600,
-                              cursor: togglingCode === item.code ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
-                            }}
-                          >
-                            {togglingCode === item.code ? '...' : (item.isActive ? 'Disable' : 'Enable')}
-                          </button>
-                        </td>
-                      )}
+
                     </tr>
                   ))}
                 </tbody>
@@ -643,7 +629,9 @@ export const Admin: React.FC = () => {
             )}
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'api-explorer' && (
         /* API Explorer View */
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '30px', alignItems: 'start' }}>
           
