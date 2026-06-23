@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Compass, LineChart, ShieldAlert, Award, Calendar, CircleDollarSign, Terminal, Send, Play, FileJson, Eye, Database, Scroll, Edit3, Search } from 'lucide-react';
-import { api, masterDataService, lalkitabAdminService, type MasterDataItem, type LalKitabRemedyDbItem } from '../services/api';
+import { api, masterDataService, lalkitabAdminService, nakshatraPadaAdminService, type MasterDataItem, type LalKitabRemedyDbItem, type NakshatraPadaDbItem } from '../services/api';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
 
 export const Admin: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'api-explorer' | 'master-data' | 'features' | 'lalkitab'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'api-explorer' | 'master-data' | 'features' | 'lalkitab' | 'nakshatra-pada'>('analytics');
 
   const [lalkitabRemedies, setLalkitabRemedies] = useState<LalKitabRemedyDbItem[]>([]);
   const [loadingLalkitab, setLoadingLalkitab] = useState(false);
@@ -21,6 +21,24 @@ export const Admin: React.FC = () => {
   const [editMalefic, setEditMalefic] = useState('');
   const [editRemediesText, setEditRemediesText] = useState('');
   const [isSavingRemedy, setIsSavingRemedy] = useState(false);
+
+  // Nakshatra Pada states
+  const [nakshatraPadas, setNakshatraPadas] = useState<NakshatraPadaDbItem[]>([]);
+  const [loadingPadas, setLoadingPadas] = useState(false);
+  const [padaSearch, setPadaSearch] = useState('');
+  const [selectedPadaNakshatraFilter, setSelectedPadaNakshatraFilter] = useState<string>('ALL');
+  const [selectedPadaNumberFilter, setSelectedPadaNumberFilter] = useState<string>('ALL');
+
+  // Nakshatra Pada modal states
+  const [isPadaEditModalOpen, setIsPadaEditModalOpen] = useState(false);
+  const [editingPada, setEditingPada] = useState<NakshatraPadaDbItem | null>(null);
+  const [editDeity, setEditDeity] = useState('');
+  const [editSymbol, setEditSymbol] = useState('');
+  const [editGana, setEditGana] = useState('');
+  const [editYoni, setEditYoni] = useState('');
+  const [editNadi, setEditNadi] = useState('');
+  const [isSavingPada, setIsSavingPada] = useState(false);
+
 
   const [features, setFeatures] = useState<MasterDataItem[]>([]);
   const [loadingFeatures, setLoadingFeatures] = useState(false);
@@ -86,6 +104,58 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const fetchNakshatraPadas = async () => {
+    setLoadingPadas(true);
+    try {
+      const res = await nakshatraPadaAdminService.getPadaList();
+      const sorted = [...res.data].sort((a, b) => {
+        if (a.nakshatraNo !== b.nakshatraNo) {
+          return a.nakshatraNo - b.nakshatraNo;
+        }
+        return a.pada - b.pada;
+      });
+      setNakshatraPadas(sorted);
+    } catch (err) {
+      console.error('Failed to load Nakshatra Padas', err);
+    } finally {
+      setLoadingPadas(false);
+    }
+  };
+
+  const handleOpenPadaEditModal = (item: NakshatraPadaDbItem) => {
+    setEditingPada(item);
+    setEditDeity(item.deity || '');
+    setEditSymbol(item.symbol || '');
+    setEditGana(item.gana || '');
+    setEditYoni(item.yoni || '');
+    setEditNadi(item.nadi || '');
+    setIsPadaEditModalOpen(true);
+  };
+
+  const handleSavePada = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPada) return;
+    setIsSavingPada(true);
+    try {
+      const updated = await nakshatraPadaAdminService.updatePadaItem(editingPada.id, {
+        deity: editDeity,
+        symbol: editSymbol,
+        gana: editGana,
+        yoni: editYoni,
+        nadi: editNadi
+      });
+      setNakshatraPadas(prev => prev.map(item => item.id === editingPada.id ? updated.data : item));
+      setIsPadaEditModalOpen(false);
+      setEditingPada(null);
+      alert('Nakshatra Pada updated successfully!');
+    } catch (err) {
+      console.error('Failed to update Nakshatra Pada', err);
+      alert('Failed to update Nakshatra Pada. Please check backend services.');
+    } finally {
+      setIsSavingPada(false);
+    }
+  };
+
   const handleToggle = async (code: string) => {
     setTogglingCode(code);
     try {
@@ -145,6 +215,8 @@ export const Admin: React.FC = () => {
       fetchFeatures();
     } else if (activeTab === 'lalkitab') {
       fetchLalkitabRemedies();
+    } else if (activeTab === 'nakshatra-pada') {
+      fetchNakshatraPadas();
     }
   }, [activeTab, selectedCategory]);
 
@@ -451,6 +523,25 @@ export const Admin: React.FC = () => {
           }}
         >
           <Scroll size={18} /> Lal Kitab Manager
+        </button>
+        <button 
+          onClick={() => setActiveTab('nakshatra-pada')}
+          style={{
+            background: activeTab === 'nakshatra-pada' ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
+            border: `1px solid ${activeTab === 'nakshatra-pada' ? 'var(--color-accent-gold)' : 'transparent'}`,
+            color: activeTab === 'nakshatra-pada' ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          <Compass size={18} /> Nakshatra Pada Manager
         </button>
       </div>
 
@@ -1231,6 +1322,154 @@ export const Admin: React.FC = () => {
         );
       })()}
 
+      {activeTab === 'nakshatra-pada' && (() => {
+        const filteredPadas = nakshatraPadas.filter(item => {
+          const matchNakshatra = selectedPadaNakshatraFilter === 'ALL' || item.nakshatraName === selectedPadaNakshatraFilter;
+          const matchPada = selectedPadaNumberFilter === 'ALL' || item.pada.toString() === selectedPadaNumberFilter;
+          
+          const searchLower = padaSearch.toLowerCase();
+          const matchSearch = !searchLower || 
+            item.nakshatraName.toLowerCase().includes(searchLower) ||
+            item.deity.toLowerCase().includes(searchLower) ||
+            item.symbol.toLowerCase().includes(searchLower) ||
+            item.gana.toLowerCase().includes(searchLower) ||
+            item.yoni.toLowerCase().includes(searchLower) ||
+            item.nadi.toLowerCase().includes(searchLower) ||
+            item.nakshatraLord.toLowerCase().includes(searchLower) ||
+            item.rashi.toLowerCase().includes(searchLower) ||
+            item.navamsaSign.toLowerCase().includes(searchLower);
+            
+          return matchNakshatra && matchPada && matchSearch;
+        });
+
+        const uniqueNakshatras = Array.from(new Set(nakshatraPadas.map(p => p.nakshatraName))).sort();
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Filter Bar */}
+            <div className="cosmic-card" style={{ padding: '20px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
+              <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Nakshatra</label>
+                <select 
+                  value={selectedPadaNakshatraFilter} 
+                  onChange={(e) => setSelectedPadaNakshatraFilter(e.target.value)}
+                  className="form-input"
+                  style={{ background: 'rgba(5, 6, 15, 0.8)', border: '1px solid var(--color-border-glass)' }}
+                >
+                  <option value="ALL">All Nakshatras</option>
+                  {uniqueNakshatras.map(nak => (
+                    <option key={nak} value={nak}>{nak}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ flex: '1 1 150px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Pada</label>
+                <select 
+                  value={selectedPadaNumberFilter} 
+                  onChange={(e) => setSelectedPadaNumberFilter(e.target.value)}
+                  className="form-input"
+                  style={{ background: 'rgba(5, 6, 15, 0.8)', border: '1px solid var(--color-border-glass)' }}
+                >
+                  <option value="ALL">All Padas</option>
+                  {[1, 2, 3, 4].map(p => (
+                    <option key={p} value={p.toString()}>Pada {p}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ flex: '2 1 300px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Search Text</label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type="text" 
+                    value={padaSearch}
+                    onChange={(e) => setPadaSearch(e.target.value)}
+                    placeholder="Search deity, symbol, gana, yoni, nadi..." 
+                    className="form-input"
+                    style={{ background: 'rgba(5, 6, 15, 0.8)', border: '1px solid var(--color-border-glass)', paddingLeft: '36px' }}
+                  />
+                  <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Records Table */}
+            <div className="cosmic-card" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '1.5rem', color: 'var(--color-accent-gold)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Compass size={20} /> Nakshatra Pada Database ({filteredPadas.length})
+                </h2>
+              </div>
+
+              {loadingPadas ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                  Fetching Nakshatra Padas from database...
+                </div>
+              ) : filteredPadas.length === 0 ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                  No Nakshatra Padas match the selected filters.
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto', maxHeight: '600px', overflowY: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold-light)', position: 'sticky', top: 0, background: '#090a15', zIndex: 1 }}>
+                        <th style={{ padding: '12px' }}>No</th>
+                        <th style={{ padding: '12px' }}>Nakshatra</th>
+                        <th style={{ padding: '12px' }}>Pada</th>
+                        <th style={{ padding: '12px' }}>Rashi</th>
+                        <th style={{ padding: '12px' }}>Navamsa Sign</th>
+                        <th style={{ padding: '12px' }}>Lord</th>
+                        <th style={{ padding: '12px' }}>Deity</th>
+                        <th style={{ padding: '12px' }}>Symbol</th>
+                        <th style={{ padding: '12px' }}>Gana</th>
+                        <th style={{ padding: '12px' }}>Yoni</th>
+                        <th style={{ padding: '12px' }}>Nadi</th>
+                        <th style={{ padding: '12px', width: '80px', textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPadas.map((item) => (
+                        <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', verticalAlign: 'middle' }}>
+                          <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>{item.nakshatraNo}</td>
+                          <td style={{ padding: '12px', fontWeight: 600, color: '#fff' }}>{item.nakshatraName}</td>
+                          <td style={{ padding: '12px', color: 'var(--color-accent-gold)' }}>Pada {item.pada}</td>
+                          <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>{item.rashi}</td>
+                          <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>{item.navamsaSign}</td>
+                          <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>{item.nakshatraLord}</td>
+                          <td style={{ padding: '12px', color: '#fff' }}>{item.deity}</td>
+                          <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>{item.symbol}</td>
+                          <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>{item.gana}</td>
+                          <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>{item.yoni}</td>
+                          <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>{item.nadi}</td>
+                          <td style={{ padding: '12px', textAlign: 'right' }}>
+                            <button
+                              onClick={() => handleOpenPadaEditModal(item)}
+                              className="btn-outline"
+                              style={{
+                                padding: '4px 10px',
+                                fontSize: '0.8rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                borderRadius: '6px'
+                              }}
+                            >
+                              <Edit3 size={12} /> Edit
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Lal Kitab Edit Modal */}
       {isEditModalOpen && editingRemedy && (
         <div style={{
@@ -1354,6 +1593,133 @@ export const Admin: React.FC = () => {
                   disabled={isSavingRemedy}
                 >
                   {isSavingRemedy ? 'Saving Changes...' : 'Save Remedy'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isPadaEditModalOpen && editingPada && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(5, 6, 15, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div className="cosmic-card" style={{
+            width: '100%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '30px',
+            border: '1px solid var(--color-accent-gold)',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-glass)', paddingBottom: '15px' }}>
+              <h3 style={{ fontSize: '1.4rem', color: 'var(--color-accent-gold)', margin: 0 }}>
+                Edit Nakshatra Pada: {editingPada.nakshatraName} - Pada {editingPada.pada}
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setIsPadaEditModalOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  padding: '0 5px'
+                }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePada} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Deity</label>
+                <input
+                  type="text"
+                  value={editDeity}
+                  onChange={(e) => setEditDeity(e.target.value)}
+                  className="form-input"
+                  style={{ background: 'rgba(5,6,15,0.8)', border: '1px solid var(--color-border-glass)' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Symbol</label>
+                <input
+                  type="text"
+                  value={editSymbol}
+                  onChange={(e) => setEditSymbol(e.target.value)}
+                  className="form-input"
+                  style={{ background: 'rgba(5,6,15,0.8)', border: '1px solid var(--color-border-glass)' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Gana</label>
+                <input
+                  type="text"
+                  value={editGana}
+                  onChange={(e) => setEditGana(e.target.value)}
+                  className="form-input"
+                  style={{ background: 'rgba(5,6,15,0.8)', border: '1px solid var(--color-border-glass)' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Yoni</label>
+                <input
+                  type="text"
+                  value={editYoni}
+                  onChange={(e) => setEditYoni(e.target.value)}
+                  className="form-input"
+                  style={{ background: 'rgba(5,6,15,0.8)', border: '1px solid var(--color-border-glass)' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Nadi</label>
+                <input
+                  type="text"
+                  value={editNadi}
+                  onChange={(e) => setEditNadi(e.target.value)}
+                  className="form-input"
+                  style={{ background: 'rgba(5,6,15,0.8)', border: '1px solid var(--color-border-glass)' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid var(--color-border-glass)', paddingTop: '15px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsPadaEditModalOpen(false)}
+                  className="btn-outline"
+                  style={{ padding: '8px 20px', borderRadius: '6px' }}
+                  disabled={isSavingPada}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-gold"
+                  style={{ padding: '8px 25px', borderRadius: '6px' }}
+                  disabled={isSavingPada}
+                >
+                  {isSavingPada ? 'Saving Changes...' : 'Save Pada'}
                 </button>
               </div>
             </form>

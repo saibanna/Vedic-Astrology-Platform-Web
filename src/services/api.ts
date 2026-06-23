@@ -212,3 +212,43 @@ export const lalkitabAdminService = {
     api.put<LalKitabRemedyDbItem>(`/api/v1/remedies/lalkitab/${id}`, data),
 };
 
+export type NakshatraPadaDbItem = {
+  id: number;
+  nakshatraNo: number;
+  nakshatraName: string;
+  pada: number;
+  startRange: string;
+  endRange: string;
+  rashi: string;
+  absoluteStart: number;
+  absoluteEnd: number;
+  navamsaSign: string;
+  nakshatraLord: string;
+  dashaYears: number;
+  deity: string;
+  symbol: string;
+  gana: string;
+  yoni: string;
+  nadi: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export const nakshatraPadaAdminService = {
+  getPadaList: (params?: { nakshatraName?: string; pada?: number }) => {
+    let query = '';
+    if (params) {
+      const parts = [];
+      if (params.nakshatraName) parts.push(`nakshatraName=${encodeURIComponent(params.nakshatraName)}`);
+      if (params.pada !== undefined) parts.push(`pada=${params.pada}`);
+      if (parts.length > 0) {
+        query = '?' + parts.join('&');
+      }
+    }
+    return api.get<NakshatraPadaDbItem[]>(`/api/v1/remedies/nakshatra-padas${query}`);
+  },
+  updatePadaItem: (id: number, data: Partial<NakshatraPadaDbItem>) =>
+    api.put<NakshatraPadaDbItem>(`/api/v1/remedies/nakshatra-padas/${id}`, data),
+};
+
+
