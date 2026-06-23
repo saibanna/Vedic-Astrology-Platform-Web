@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { astrologyService, calculatorService, masterDataService } from '../services/api';
-import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll } from 'lucide-react';
+import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll, Briefcase, Heart, CircleDollarSign, Activity, Flame, ArrowRight, ArrowLeft, RefreshCw } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
@@ -22,6 +22,11 @@ const ZODIAC_SIGNS = [
 ];
 
 export const Home: React.FC = () => {
+  // Wizard steps: 'concern' | 'birthForm' | 'results'
+  const [wizardStep, setWizardStep] = useState<'concern' | 'birthForm' | 'results'>('concern');
+  const [selectedConcern, setSelectedConcern] = useState<'career' | 'marriage' | 'finance' | 'health' | 'spirituality' | 'general' | null>(null);
+  const [formStep, setFormStep] = useState(1);
+
   // Birth chart form state
   const [formData, setFormData] = useState({
     name: '',
@@ -96,10 +101,19 @@ export const Home: React.FC = () => {
           pitraDosha:pitraDosha.status === 'fulfilled' ? pitraDosha.value.data : null,
         };
       } else if (tab === 'gemstone') {
-        res = (await calculatorService.nakshatra(input)).data; // reuse nakshatra endpoint to get moon sign
+        const concernMap: Record<string, string> = {
+          career: 'Career',
+          marriage: 'Marriage',
+          finance: 'Wealth',
+          health: 'Health',
+          spirituality: 'General',
+          general: 'General',
+        };
+        const activeConcern = selectedConcern ? concernMap[selectedConcern] : 'General';
+        
         const gemRes = await fetch(`/api/v1/astrology/calc/gemstone-suggestion`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...input, concern: 'General' })
+          body: JSON.stringify({ ...input, concern: activeConcern })
         });
         res = await gemRes.json();
       } else if (tab === 'nakshatra') {
@@ -126,6 +140,8 @@ export const Home: React.FC = () => {
     } catch { /* silent — tab shows error state */ }
     finally { setCalcLoading(l => ({ ...l, [tab]: false })); }
   };
+
+
 
   const switchTab = (tab: string, input: any) => {
     setActiveTab(tab);
@@ -210,6 +226,33 @@ export const Home: React.FC = () => {
     return () => clearTimeout(timer);
   }, [formData.pob]);
 
+  // Pre-load necessary tabs in the background based on selected concern
+  useEffect(() => {
+    if (!calcInput || !selectedConcern) return;
+
+    if (selectedConcern === 'career') {
+      loadCalc('gemstone', calcInput);
+      loadCalc('transit', calcInput);
+    } else if (selectedConcern === 'marriage') {
+      loadCalc('doshas', calcInput);
+      loadCalc('gemstone', calcInput);
+    } else if (selectedConcern === 'finance') {
+      loadCalc('nakshatra', calcInput);
+      loadCalc('gemstone', calcInput);
+    } else if (selectedConcern === 'health') {
+      loadCalc('doshas', calcInput);
+      loadCalc('rudraksha', calcInput);
+      loadCalc('gemstone', calcInput);
+    } else if (selectedConcern === 'spirituality') {
+      loadCalc('nakshatra', calcInput);
+      loadCalc('rudraksha', calcInput);
+    } else if (selectedConcern === 'general') {
+      loadCalc('doshas', calcInput);
+      loadCalc('gemstone', calcInput);
+      loadCalc('nakshatra', calcInput);
+    }
+  }, [calcInput, selectedConcern]);
+
   const generateKundali = async (e: React.FormEvent) => {
     e.preventDefault();
     setChartError(null);
@@ -245,6 +288,7 @@ export const Home: React.FC = () => {
       setCalcInput(input);
       setCalcData({});  // reset so tabs reload fresh
       setActiveTab('chart');
+      setWizardStep('results');
     } catch (err: any) {
       const msg = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? 'Failed to generate chart.';
       setChartError(msg);
@@ -252,6 +296,24 @@ export const Home: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResetWizard = () => {
+    setWizardStep('concern');
+    setSelectedConcern(null);
+    setFormStep(1);
+    setChartResult(null);
+    setCalcInput(null);
+    setCalcData({});
+    setFormData({
+      name: '',
+      dob: '',
+      tob: '',
+      pob: '',
+      lat: '',
+      lon: '',
+      tzone: '5.5'
+    });
   };
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.name === 'pob') {
@@ -291,273 +353,415 @@ export const Home: React.FC = () => {
     }
   };
 
+  const CONCERNS = [
+    { id: 'career', label: 'Career & Business', desc: 'Job opportunities, promotions, profession and wealth through business.', icon: <Briefcase size={28} />, color: 'var(--color-accent-gold)' },
+    { id: 'marriage', label: 'Marriage & Relationships', desc: 'Partnership compatibility, marital harmony, and relationship timing.', icon: <Heart size={28} />, color: '#ec4899' },
+    { id: 'finance', label: 'Finance & Wealth', desc: 'Financial stability, investments, and wealth-generating Yogas.', icon: <CircleDollarSign size={28} />, color: '#22c55e' },
+    { id: 'health', label: 'Health & Vitality', desc: 'Physical wellness, mental peace, Sade Sati warnings and transits.', icon: <Activity size={28} />, color: '#3b82f6' },
+    { id: 'spirituality', label: 'Spirituality & Purpose', desc: 'Soul purpose, Ishta Devta, spiritual mantra and Nakshatra.', icon: <Flame size={28} />, color: '#f59e0b' },
+    { id: 'general', label: 'General Horoscope', desc: 'Full mathematical Kundali report covering charts, doshas, and predictions.', icon: <Compass size={28} />, color: '#a855f7' },
+  ] as const;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '60px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', minHeight: '80vh' }}>
       
       {/* Hero Header */}
-      <section style={{ textAlign: 'center', padding: '20px 0' }}>
-        <h1 style={{ fontSize: '3rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)' }}>
-          Discover Your Cosmic Blueprint
-        </h1>
-        <p style={{ fontSize: '1.2rem', color: 'var(--color-text-muted)', maxWidth: '800px', margin: '0 auto' }}>
-          VedaAstro combines ancient mathematical astrology with modern microservices to deliver precision Kundali birth charts, daily planetary analysis, and customized remedies.
-        </p>
-      </section>
-
-      {/* Grid: Kundali Generator & Daily Horoscope */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: '40px'
-      }}>
-        
-        {/* Left: Kundali Form */}
-        <div className="cosmic-card">
-          <h2 style={{ fontSize: '1.8rem', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-accent-gold)' }}>
-            <Compass size={28} className="animate-spin-slow" /> Free Kundali Chart
-          </h2>
-          {!activeFeatures.birth_chart ? (
-            <div style={{ padding: '30px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
-              <div style={{
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#f87171',
-                padding: '12px',
-                borderRadius: '50%',
-                display: 'inline-flex'
-              }}>
-                <Compass size={36} />
-              </div>
-              <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                The Free Birth Chart generation features are currently offline for scheduled maintenance. Please consult our astrologers directly or check back later!
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={generateKundali}>
-            <div className="form-group">
-              <label>Name</label>
-              <input 
-                type="text" 
-                name="name" 
-                placeholder="Enter your name" 
-                value={formData.name} 
-                onChange={handleInputChange} 
-                className="form-input" 
-                required 
-              />
-            </div>
-            <div className="form-group">
-              <label>Date of Birth</label>
-              <input 
-                type="date" 
-                name="dob" 
-                value={formData.dob} 
-                onChange={handleInputChange} 
-                className="form-input" 
-                required 
-              />
-            </div>
-            <div className="form-group">
-              <label>Time of Birth</label>
-              <input 
-                type="time" 
-                name="tob" 
-                value={formData.tob} 
-                onChange={handleInputChange} 
-                className="form-input" 
-                required 
-              />
-            </div>
-            <div className="form-group" style={{ position: 'relative' }}>
-              <label>Place of Birth</label>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <input 
-                  type="text" 
-                  name="pob" 
-                  placeholder="e.g. Mumbai, India" 
-                  value={formData.pob} 
-                  onChange={handleInputChange}
-                  className="form-input"
-                  style={{ flex: 1, paddingRight: '40px' }}
-                />
-                <div style={{ position: 'absolute', right: '12px', display: 'flex', alignItems: 'center', color: 'var(--color-accent-gold)', opacity: 0.8 }}>
-                  {geoLoading ? (
-                    <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                  ) : (
-                    <Search size={16} />
-                  )}
-                </div>
-              </div>
-              {geoSuggestions.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  zIndex: 150,
-                  background: 'rgba(10, 11, 28, 0.98)',
-                  backdropFilter: 'blur(8px)',
-                  border: '1px solid var(--color-border-gold)',
-                  borderRadius: '10px',
-                  marginTop: '6px',
-                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.6)',
-                  maxHeight: '260px',
-                  overflowY: 'auto'
-                }}>
-                  {geoSuggestions.map((s, i) => {
-                    const address = s.address || {};
-                    const primary = s.name || s.display_name.split(',')[0].trim();
-                    const state = address.state || address.region || address.province || '';
-                    const country = address.country || '';
-                    
-                    const mainName = primary;
-                    const secondaryParts = [];
-                    if (state && state.toLowerCase() !== primary.toLowerCase()) {
-                      secondaryParts.push(state);
-                    }
-                    if (country && country.toLowerCase() !== primary.toLowerCase()) {
-                      secondaryParts.push(country);
-                    }
-                    const secondaryName = secondaryParts.join(', ');
-                    
-                    return (
-                      <div
-                        key={i}
-                        onClick={() => selectGeoSuggestion(s)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          padding: '12px 16px',
-                          cursor: 'pointer',
-                          borderBottom: i < geoSuggestions.length - 1 ? '1px solid var(--color-border-glass)' : 'none',
-                          transition: 'background 0.2s ease',
-                        }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.background = 'rgba(212,175,55,0.1)';
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.background = 'transparent';
-                        }}
-                      >
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '50%',
-                          background: 'rgba(212, 175, 55, 0.12)',
-                          flexShrink: 0
-                        }}>
-                          <span style={{ fontSize: '0.9rem' }}>📍</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: 1, justifyContent: 'center' }}>
-                          <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
-                            {mainName}
-                          </span>
-                          {secondaryName && (
-                            <span style={{ color: 'var(--color-text-muted)', fontSize: '0.76rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
-                              {secondaryName}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Latitude</label>
-                <input 
-                  type="number" 
-                  step="any"
-                  name="lat" 
-                  value={formData.lat} 
-                  onChange={handleInputChange} 
-                  className="form-input" 
-                  required 
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Longitude</label>
-                <input 
-                  type="number" 
-                  step="any"
-                  name="lon" 
-                  value={formData.lon} 
-                  onChange={handleInputChange} 
-                  className="form-input" 
-                  required 
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Timezone</label>
-                <input 
-                  type="number" 
-                  step="any"
-                  name="tzone" 
-                  value={formData.tzone} 
-                  onChange={handleInputChange} 
-                  className="form-input" 
-                  required 
-                />
-              </div>
-            </div>
-            <button type="submit" className="btn-gold" style={{ width: '100%', marginTop: '10px' }} disabled={loading}>
-              {loading ? 'Aligning Planets...' : 'Generate Birth Chart'}
-            </button>
-            {chartError && (
-              <div style={{ marginTop: '12px', padding: '12px', borderRadius: '8px', background: 'rgba(231,76,60,0.1)', border: '1px solid #e74c3c', color: '#e74c3c', fontSize: '0.9rem' }}>
-                ⚠ {chartError}
-              </div>
-            )}
-          </form>
-          )}
-        </div>
-
-        {/* Right: Daily Horoscope Grid */}
-        <div className="cosmic-card">
-          <h2 style={{ fontSize: '1.8rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-accent-gold)' }}>
-            <Sun size={28} /> Daily Horoscope
-          </h2>
-          <p style={{ color: 'var(--color-text-muted)', marginBottom: '24px' }}>
-            Select your zodiac sign to reveal your personalized planetary forecast.
+      {wizardStep !== 'results' && (
+        <section style={{ textAlign: 'center', padding: '20px 0 10px 0' }}>
+          <h1 style={{ fontSize: '3rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', fontFamily: 'var(--font-heading)' }}>
+            Discover Your Cosmic Blueprint
+          </h1>
+          <p style={{ fontSize: '1.15rem', color: 'var(--color-text-muted)', maxWidth: '750px', margin: '0 auto', lineHeight: '1.6' }}>
+            VedaAstro combines ancient mathematical astrology with modern microservices to deliver precision Kundali birth charts, daily planetary analysis, and customized remedies.
           </p>
+        </section>
+      )}
+
+      {/* STEP 1: CONCERN SELECTOR */}
+      {wizardStep === 'concern' && (
+        <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <h2 style={{ fontSize: '1.8rem', color: 'var(--color-accent-gold)', marginBottom: '8px' }}>
+              What brings you here today?
+            </h2>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '1rem' }}>
+              Select a focus area to tailor your Kundali reading and remedies.
+            </p>
+          </div>
+
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '12px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '24px',
+            maxWidth: '1000px',
+            margin: '0 auto 40px auto'
           }}>
-            {ZODIAC_SIGNS.map((sign) => (
-              <button
-                key={sign.name}
-                onClick={() => fetchHoroscope(sign.name)}
+            {CONCERNS.map((c) => (
+              <div 
+                key={c.id}
+                onClick={() => {
+                  setSelectedConcern(c.id);
+                  setWizardStep('birthForm');
+                  setFormStep(1);
+                }}
+                className="cosmic-card"
                 style={{
-                  background: selectedZodiac === sign.name ? 'rgba(212, 175, 55, 0.2)' : 'rgba(255, 255, 255, 0.03)',
-                  border: `1px solid ${selectedZodiac === sign.name ? 'var(--color-accent-gold)' : 'var(--color-border-glass)'}`,
-                  borderRadius: '12px',
-                  padding: '12px 6px',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease',
+                  padding: '28px',
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px'
+                  gap: '16px',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.border = `1px solid ${c.color}`;
+                  e.currentTarget.style.boxShadow = `0 0 20px ${c.color}25`;
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.border = '1px solid var(--color-border-glass)';
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.transform = 'none';
                 }}
               >
-                <span style={{ fontSize: '1.8rem', color: selectedZodiac === sign.name ? 'var(--color-accent-gold)' : 'var(--color-text-main)' }}>{sign.symbol}</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{sign.name}</span>
-              </button>
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '12px',
+                  background: `${c.color}15`,
+                  border: `1px solid ${c.color}35`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: c.color
+                }}>
+                  {c.icon}
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', marginBottom: '8px' }}>
+                    {c.label}
+                  </h3>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
+                    {c.desc}
+                  </p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Calculator Tabs */}
-      {calcInput && (() => {
+      {/* STEP 2: BIRTH DETAILS WIZARD */}
+      {wizardStep === 'birthForm' && (
+        <div style={{ maxWidth: '600px', width: '100%', margin: '0 auto', animation: 'fadeIn 0.5s ease-out' }}>
+          
+          {/* Back Navigation & Breadcrumb */}
+          <button 
+            onClick={() => {
+              if (formStep > 1) {
+                setFormStep(formStep - 1);
+              } else {
+                setWizardStep('concern');
+                setSelectedConcern(null);
+              }
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.9rem',
+              marginBottom: '20px',
+              padding: 0
+            }}
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+
+          <div className="cosmic-card" style={{ padding: '36px' }}>
+            {/* Stepper Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: '15px', left: '10%', right: '10%', height: '2px', background: 'var(--color-border-glass)', zIndex: 1 }} />
+              <div style={{ position: 'absolute', top: '15px', left: '10%', width: formStep === 1 ? '0%' : formStep === 2 ? '40%' : '80%', height: '2px', background: 'var(--color-accent-gold)', zIndex: 2, transition: 'all 0.3s ease' }} />
+              
+              {[1, 2, 3].map((step) => (
+                <div key={step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 5, flex: 1 }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: formStep >= step ? 'var(--color-primary)' : 'var(--color-space-sky)',
+                    border: `2px solid ${formStep >= step ? 'var(--color-accent-gold)' : 'var(--color-border-glass)'}`,
+                    color: formStep >= step ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    boxShadow: formStep === step ? '0 0 10px var(--color-gold-glow)' : 'none',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    {step}
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: formStep === step ? 'var(--color-accent-gold)' : 'var(--color-text-muted)', fontWeight: formStep === step ? 600 : 400 }}>
+                    {step === 1 ? 'Profile' : step === 2 ? 'Birth Info' : 'Location'}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Stepper Content Form */}
+            {!activeFeatures.birth_chart ? (
+              <div style={{ padding: '20px 0', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', padding: '12px', borderRadius: '50%', display: 'inline-flex' }}>
+                  <Compass size={36} />
+                </div>
+                <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                  The Free Birth Chart generation features are currently offline for scheduled maintenance. Please consult our astrologers directly or check back later!
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={(e) => { e.preventDefault(); if (formStep === 3) generateKundali(e); }}>
+                
+                {/* Step 1: Profile Details */}
+                {formStep === 1 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s ease-out' }}>
+                    <h3 style={{ fontSize: '1.4rem', color: 'var(--color-accent-gold-light)', margin: 0 }}>What is your name?</h3>
+                    <div className="form-group">
+                      <label>Name</label>
+                      <input 
+                        type="text" 
+                        name="name" 
+                        placeholder="Enter your name" 
+                        value={formData.name} 
+                        onChange={handleInputChange} 
+                        className="form-input" 
+                        autoFocus
+                        required 
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      className="btn-gold" 
+                      onClick={() => { if (formData.name.trim()) setFormStep(2); }}
+                      disabled={!formData.name.trim()}
+                      style={{ marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    >
+                      Continue <ArrowRight size={16} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Step 2: Date & Time of Birth */}
+                {formStep === 2 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s ease-out' }}>
+                    <h3 style={{ fontSize: '1.4rem', color: 'var(--color-accent-gold-light)', margin: 0 }}>Date and Time of Birth</h3>
+                    <div className="form-group">
+                      <label>Date of Birth</label>
+                      <input 
+                        type="date" 
+                        name="dob" 
+                        value={formData.dob} 
+                        onChange={handleInputChange} 
+                        className="form-input" 
+                        required 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Time of Birth</label>
+                      <input 
+                        type="time" 
+                        name="tob" 
+                        value={formData.tob} 
+                        onChange={handleInputChange} 
+                        className="form-input" 
+                        required 
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      className="btn-gold" 
+                      onClick={() => { if (formData.dob && formData.tob) setFormStep(3); }}
+                      disabled={!formData.dob || !formData.tob}
+                      style={{ marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    >
+                      Continue <ArrowRight size={16} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Step 3: Location of Birth */}
+                {formStep === 3 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s ease-out' }}>
+                    <h3 style={{ fontSize: '1.4rem', color: 'var(--color-accent-gold-light)', margin: 0 }}>Place of Birth</h3>
+                    <div className="form-group" style={{ position: 'relative', marginBottom: 0 }}>
+                      <label>Birth Place City</label>
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input 
+                          type="text" 
+                          name="pob" 
+                          placeholder="e.g. Mumbai, India" 
+                          value={formData.pob} 
+                          onChange={handleInputChange}
+                          className="form-input"
+                          style={{ flex: 1, paddingRight: '40px' }}
+                          required
+                        />
+                        <div style={{ position: 'absolute', right: '12px', display: 'flex', alignItems: 'center', color: 'var(--color-accent-gold)', opacity: 0.8 }}>
+                          {geoLoading ? (
+                            <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                          ) : (
+                            <Search size={16} />
+                          )}
+                        </div>
+                      </div>
+                      
+                      {geoSuggestions.length > 0 && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          zIndex: 150,
+                          background: 'rgba(10, 11, 28, 0.98)',
+                          backdropFilter: 'blur(8px)',
+                          border: '1px solid var(--color-border-gold)',
+                          borderRadius: '10px',
+                          marginTop: '6px',
+                          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.6)',
+                          maxHeight: '200px',
+                          overflowY: 'auto'
+                        }}>
+                          {geoSuggestions.map((s, i) => {
+                            const address = s.address || {};
+                            const primary = s.name || s.display_name.split(',')[0].trim();
+                            const state = address.state || address.region || address.province || '';
+                            const country = address.country || '';
+                            
+                            const mainName = primary;
+                            const secondaryParts = [];
+                            if (state && state.toLowerCase() !== primary.toLowerCase()) {
+                              secondaryParts.push(state);
+                            }
+                            if (country && country.toLowerCase() !== primary.toLowerCase()) {
+                              secondaryParts.push(country);
+                            }
+                            const secondaryName = secondaryParts.join(', ');
+                            
+                            return (
+                              <div
+                                key={i}
+                                onClick={() => selectGeoSuggestion(s)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '12px',
+                                  padding: '12px 16px',
+                                  cursor: 'pointer',
+                                  borderBottom: i < geoSuggestions.length - 1 ? '1px solid var(--color-border-glass)' : 'none',
+                                  transition: 'background 0.2s ease',
+                                }}
+                                onMouseEnter={e => {
+                                  e.currentTarget.style.background = 'rgba(212,175,55,0.1)';
+                                }}
+                                onMouseLeave={e => {
+                                  e.currentTarget.style.background = 'transparent';
+                                }}
+                              >
+                                <span style={{ fontSize: '0.9rem' }}>📍</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1, justifyContent: 'center' }}>
+                                  <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
+                                    {mainName}
+                                  </span>
+                                  {secondaryName && (
+                                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
+                                      {secondaryName}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label>Latitude</label>
+                        <input 
+                          type="number" 
+                          step="any"
+                          name="lat" 
+                          value={formData.lat} 
+                          onChange={handleInputChange} 
+                          className="form-input" 
+                          required 
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label>Longitude</label>
+                        <input 
+                          type="number" 
+                          step="any"
+                          name="lon" 
+                          value={formData.lon} 
+                          onChange={handleInputChange} 
+                          className="form-input" 
+                          required 
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label>Timezone</label>
+                        <input 
+                          type="number" 
+                          step="any"
+                          name="tzone" 
+                          value={formData.tzone} 
+                          onChange={handleInputChange} 
+                          className="form-input" 
+                          required 
+                        />
+                      </div>
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      className="btn-gold" 
+                      style={{ width: '100%', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                      disabled={loading || !formData.lat || !formData.lon}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> Aligning Planets...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={18} /> Align Planets & Generate Chart
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {chartError && (
+                  <div style={{ marginTop: '16px', padding: '12px', borderRadius: '8px', background: 'rgba(231,76,60,0.1)', border: '1px solid #e74c3c', color: '#e74c3c', fontSize: '0.9rem' }}>
+                    ⚠ {chartError}
+                  </div>
+                )}
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3: RESULTS (Tab calculations, customized Remedies Advisor) */}
+      {wizardStep === 'results' && calcInput && (() => {
         const TABS = [
           { id: 'chart',    label: 'Charts & Dasha', icon: <Compass size={15} /> },
           { id: 'doshas',   label: 'Dosha Report',   icon: <ShieldAlert size={15} /> },
@@ -585,8 +789,341 @@ export const Home: React.FC = () => {
           </div>
         );
 
+        const getConcernTitle = () => {
+          switch (selectedConcern) {
+            case 'career': return 'Career & Professional Growth';
+            case 'marriage': return 'Marriage & Relationships';
+            case 'finance': return 'Wealth, Finance & Prosperity';
+            case 'health': return 'Health, Vitality & Well-being';
+            case 'spirituality': return 'Spirituality & Soul Purpose';
+            default: return 'General Cosmic Blueprint';
+          }
+        };
+
+        const renderRemediesAdvisor = () => {
+          const loadingText = "Analyzing planetary placements...";
+          
+          if (selectedConcern === 'career') {
+            const hasGemstone = calcData.gemstone?.recommendations;
+            const primaryGem = hasGemstone?.find((r: any) => r.rank === 1);
+            const currentDashaPlanet = dashaResult?.currentDasha;
+            
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                {/* Gemstone card */}
+                <div className="cosmic-card" style={{ border: '1px solid rgba(212, 175, 55, 0.3)', background: 'rgba(212, 175, 55, 0.02)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-accent-gold)', marginBottom: '12px' }}>
+                    <Gem size={20} />
+                    <strong>Career Gemstone Recommendation</strong>
+                  </div>
+                  {calcLoading.gemstone ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                   primaryGem ? (
+                    <div>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', margin: '0 0 4px 0' }}>{primaryGem.gemstone} ({primaryGem.hindiName})</p>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: '0 0 10px 0' }}>Metal: {primaryGem.metal} · Day: {primaryGem.dayToWear}</p>
+                      <p style={{ color: '#aed6f1', fontSize: '0.85rem', margin: 0 }}>{primaryGem.benefit}</p>
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>No gemstone suggested for career.</p>}
+                </div>
+
+                {/* Dasha card */}
+                <div className="cosmic-card" style={{ border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#a855f7', marginBottom: '12px' }}>
+                    <Clock size={20} />
+                    <strong>Dasha Cycle Influence</strong>
+                  </div>
+                  {currentDashaPlanet ? (
+                    <div>
+                      <p style={{ fontSize: '1.15rem', fontWeight: 600, color: '#fff', margin: '0 0 6px 0' }}>Active Period: {currentDashaPlanet} Mahadasha</p>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', lineHeight: '1.5', margin: 0 }}>
+                        Your career matters are currently influenced by {currentDashaPlanet}. Strengthening this planet via mantra recitation or charity on its ruling day will help remove professional hurdles and boost career progression.
+                      </p>
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Loading dasha cycle details...</p>}
+                </div>
+
+                {/* Transit card */}
+                <div className="cosmic-card" style={{ border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', marginBottom: '12px' }}>
+                    <TrendingUp size={20} />
+                    <strong>Transit Alert & Actions</strong>
+                  </div>
+                  {calcLoading.transit ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                   calcData.transit?.significant?.length ? (
+                    <div>
+                      <p style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600, marginBottom: '6px' }}>Key transit: {calcData.transit.significant[0].planet}</p>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: 0, lineHeight: '1.5' }}>
+                        {calcData.transit.significant[0].effect}
+                      </p>
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Your transits are stable. Keep pursuing your professional goals with dedication.</p>}
+                </div>
+              </div>
+            );
+          }
+
+          if (selectedConcern === 'marriage') {
+            const hasDoshas = calcData.doshas;
+            const isManglik = hasDoshas?.manglik?.isManglik;
+            const intensity = hasDoshas?.manglik?.intensity;
+            const primaryGem = calcData.gemstone?.recommendations?.find((r: any) => r.rank === 1);
+            
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                {/* Manglik card */}
+                <div className="cosmic-card" style={{ border: isManglik ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(34, 197, 94, 0.4)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isManglik ? '#ef4444' : '#22c55e', marginBottom: '12px' }}>
+                    <ShieldAlert size={20} />
+                    <strong>Manglik Dosha Assessment</strong>
+                  </div>
+                  {calcLoading.doshas ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                   hasDoshas?.manglik ? (
+                    <div>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 700, color: isManglik ? '#ef4444' : '#22c55e', margin: '0 0 6px 0' }}>
+                        {isManglik ? `Manglik (${intensity})` : 'No Manglik Dosha'}
+                      </p>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', lineHeight: '1.5', margin: 0 }}>
+                        {hasDoshas.manglik.description}
+                      </p>
+                      {isManglik && hasDoshas.manglik.remedies?.length > 0 && (
+                        <p style={{ color: 'var(--color-accent-gold)', fontSize: '0.8rem', marginTop: '8px', fontWeight: 500 }}>
+                          Remedy: {hasDoshas.manglik.remedies[0]}
+                        </p>
+                      )}
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>No dosha assessment available.</p>}
+                </div>
+
+                {/* Gemstone card */}
+                <div className="cosmic-card" style={{ border: '1px solid rgba(236, 72, 153, 0.3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ec4899', marginBottom: '12px' }}>
+                    <Gem size={20} />
+                    <strong>Relationship Gemstone</strong>
+                  </div>
+                  {calcLoading.gemstone ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                   primaryGem ? (
+                    <div>
+                      <p style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', margin: '0 0 4px 0' }}>{primaryGem.gemstone} ({primaryGem.hindiName})</p>
+                      <p style={{ color: '#aed6f1', fontSize: '0.85rem', margin: 0, lineHeight: '1.4' }}>{primaryGem.benefit}</p>
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Gemstone analysis is loading...</p>}
+                </div>
+              </div>
+            );
+          }
+
+          if (selectedConcern === 'finance') {
+            const dhanYoga = calcData.nakshatra?.dhanYoga;
+            const primaryGem = calcData.gemstone?.recommendations?.find((r: any) => r.rank === 1);
+
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                {/* Dhan Yoga Card */}
+                <div className="cosmic-card" style={{ border: '1px solid rgba(34, 197, 94, 0.3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#22c55e', marginBottom: '12px' }}>
+                    <TrendingUp size={20} />
+                    <strong>Wealth Alignments (Dhan Yoga)</strong>
+                  </div>
+                  {calcLoading.nakshatra ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                   dhanYoga ? (
+                    <div>
+                      <p style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', margin: '0 0 6px 0' }}>Wealth Potential: {dhanYoga.strength}</p>
+                      {dhanYoga.wealthYogas?.length > 0 ? (
+                        <div>
+                          <p style={{ color: '#22c55e', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 4px 0' }}>Active Yoga: {dhanYoga.wealthYogas[0].yoga}</p>
+                          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.82rem', margin: 0, lineHeight: '1.4' }}>{dhanYoga.wealthYogas[0].description}</p>
+                        </div>
+                      ) : (
+                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: 0 }}>{dhanYoga.summary}</p>
+                      )}
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Wealth parameters loading...</p>}
+                </div>
+
+                {/* Gemstone card */}
+                <div className="cosmic-card" style={{ border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-accent-gold)', marginBottom: '12px' }}>
+                    <Gem size={20} />
+                    <strong>Prosperity Gemstone</strong>
+                  </div>
+                  {calcLoading.gemstone ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                   primaryGem ? (
+                    <div>
+                      <p style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', margin: '0 0 4px 0' }}>{primaryGem.gemstone} ({primaryGem.hindiName})</p>
+                      <p style={{ color: '#aed6f1', fontSize: '0.85rem', margin: 0, lineHeight: '1.4' }}>{primaryGem.benefit}</p>
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Gemstone analysis is loading...</p>}
+                </div>
+              </div>
+            );
+          }
+
+          if (selectedConcern === 'health') {
+            const sadeSati = calcData.doshos?.sadeSati ?? calcData.doshas?.sadeSati;
+            const rudraksha = calcData.rudraksha?.primary;
+            const primaryGem = calcData.gemstone?.recommendations?.find((r: any) => r.rank === 1);
+
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                {/* Sade Sati Card */}
+                <div className="cosmic-card" style={{ border: sadeSati?.inSadeSati ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(34, 197, 94, 0.4)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: sadeSati?.inSadeSati ? '#ef4444' : '#22c55e', marginBottom: '12px' }}>
+                    <ShieldAlert size={20} />
+                    <strong>Saturn Cycle (Sade Sati)</strong>
+                  </div>
+                  {calcLoading.doshas ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                   sadeSati ? (
+                    <div>
+                      <p style={{ fontSize: '1.2rem', fontWeight: 700, color: sadeSati.inSadeSati ? '#ef4444' : '#22c55e', margin: '0 0 4px 0' }}>
+                        {sadeSati.inSadeSati ? `Sade Sati Active (${sadeSati.phase})` : 'Sade Sati Inactive'}
+                      </p>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', lineHeight: '1.4', margin: 0 }}>
+                        {sadeSati.description}
+                      </p>
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Saturn metrics loading...</p>}
+                </div>
+
+                {/* Rudraksha Card */}
+                <div className="cosmic-card" style={{ border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', marginBottom: '12px' }}>
+                    <Sparkles size={20} />
+                    <strong>Shielding Rudraksha Recommendation</strong>
+                  </div>
+                  {calcLoading.rudraksha ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                   rudraksha ? (
+                    <div>
+                      <p style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', margin: '0 0 4px 0' }}>{rudraksha.beads} Mukhi Rudraksha</p>
+                      <p style={{ color: '#aed6f1', fontSize: '0.82rem', margin: 0, lineHeight: '1.4' }}>{rudraksha.benefit}</p>
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Rudraksha metrics loading...</p>}
+                </div>
+
+                {/* Gemstone card */}
+                <div className="cosmic-card" style={{ border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-accent-gold)', marginBottom: '12px' }}>
+                    <Gem size={20} />
+                    <strong>Health Gemstone Recommendation</strong>
+                  </div>
+                  {calcLoading.gemstone ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                   primaryGem ? (
+                    <div>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', margin: '0 0 4px 0' }}>{primaryGem.gemstone} ({primaryGem.hindiName})</p>
+                      <p style={{ color: '#aed6f1', fontSize: '0.85rem', margin: 0, lineHeight: '1.4' }}>{primaryGem.benefit}</p>
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Gemstone analysis is loading...</p>}
+                </div>
+              </div>
+            );
+          }
+
+          if (selectedConcern === 'spirituality') {
+            const ishta = calcData.nakshatra?.ishtaDevta;
+            const atmakaraka = calcData.nakshatra?.atmakaraka;
+            
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                {/* Ishta Devta Card */}
+                <div className="cosmic-card" style={{ border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f59e0b', marginBottom: '12px' }}>
+                    <Flame size={20} />
+                    <strong>Your Ishta Devta (Spiritual Guide)</strong>
+                  </div>
+                  {calcLoading.nakshatra ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                   ishta ? (
+                    <div>
+                      <p style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', margin: '0 0 4px 0' }}>{ishta.ishtaDevta}</p>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '6px', lineHeight: '1.4' }}>{ishta.description}</p>
+                      <p style={{ color: 'var(--color-accent-gold)', fontSize: '0.8rem', fontStyle: 'italic', margin: 0 }}>Mantra: {ishta.mantra}</p>
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Spiritual metrics loading...</p>}
+                </div>
+
+                {/* Atmakaraka Card */}
+                <div className="cosmic-card" style={{ border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#a855f7', marginBottom: '12px' }}>
+                    <Star size={20} />
+                    <strong>Atmakaraka (Soul Planet Purpose)</strong>
+                  </div>
+                  {calcLoading.nakshatra ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                   atmakaraka ? (
+                    <div>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', margin: '0 0 4px 0' }}>{atmakaraka.atmakaraka}</p>
+                      <p style={{ color: '#aed6f1', fontSize: '0.82rem', fontStyle: 'italic', margin: 0, lineHeight: '1.4' }}>{atmakaraka.meaning}</p>
+                    </div>
+                  ) : <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Soul planet metrics loading...</p>}
+                </div>
+              </div>
+            );
+          }
+
+          // General readings card summary
+          const primaryGem = calcData.gemstone?.recommendations?.find((r: any) => r.rank === 1);
+          const ishta = calcData.nakshatra?.ishtaDevta;
+
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+              <div className="cosmic-card" style={{ border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Primary Stone</p>
+                {calcLoading.gemstone ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                 primaryGem ? <p style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-accent-gold)', margin: 0 }}>{primaryGem.gemstone} ({primaryGem.hindiName})</p> :
+                 <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: 0 }}>Lagna stone loading...</p>}
+              </div>
+
+              <div className="cosmic-card" style={{ border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Spiritual Guide</p>
+                {calcLoading.nakshatra ? <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{loadingText}</p> :
+                 ishta ? <p style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-accent-gold-light)', margin: 0 }}>{ishta.ishtaDevta}</p> :
+                 <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: 0 }}>Ishta Devta loading...</p>}
+              </div>
+            </div>
+          );
+        };
+
         return (
-          <section style={{ marginTop: '20px' }}>
+          <section style={{ marginTop: '20px', animation: 'fadeIn 0.5s ease-out' }}>
+            {/* Header Action Bar */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '16px',
+              marginBottom: '32px',
+              borderBottom: '1px solid var(--color-border-glass)',
+              paddingBottom: '20px'
+            }}>
+              <div>
+                <p style={{ color: 'var(--color-accent-gold)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px 0', fontWeight: 600 }}>
+                  Personalized Reading for {formData.name}
+                </p>
+                <h2 style={{ fontSize: '2rem', color: '#fff', margin: 0, fontFamily: 'var(--font-heading)' }}>
+                  {getConcernTitle()}
+                </h2>
+              </div>
+              <button 
+                onClick={handleResetWizard}
+                className="btn-outline"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  fontSize: '0.85rem'
+                }}
+              >
+                <RefreshCw size={14} /> Reset / New Reading
+              </button>
+            </div>
+
+            {/* Personalized Remedies Advisory Grid */}
+            <div style={{ marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.25rem', color: 'var(--color-accent-gold-light)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={18} /> Personalized Remedies Advisor
+              </h3>
+              {renderRemediesAdvisor()}
+            </div>
+
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', borderBottom: '1px solid var(--color-border-glass)', marginBottom: '24px' }}>
               {TABS.map(t => (
@@ -922,6 +1459,45 @@ export const Home: React.FC = () => {
           </section>
         );
       })()}
+
+      {/* Daily Horoscope Grid at the bottom (Secondary card for general discovery) */}
+      {wizardStep !== 'results' && (
+        <section className="cosmic-card" style={{ maxWidth: '800px', width: '100%', margin: '40px auto 0 auto', animation: 'fadeIn 0.5s ease-out' }}>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-accent-gold-light)' }}>
+            <Sun size={22} /> Daily Horoscope
+          </h2>
+          <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px', fontSize: '0.9rem' }}>
+            Select your zodiac sign to reveal your personalized daily forecast.
+          </p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+            gap: '12px'
+          }}>
+            {ZODIAC_SIGNS.map((sign) => (
+              <button
+                key={sign.name}
+                onClick={() => fetchHoroscope(sign.name)}
+                style={{
+                  background: selectedZodiac === sign.name ? 'rgba(212, 175, 55, 0.2)' : 'rgba(255, 255, 255, 0.02)',
+                  border: `1px solid ${selectedZodiac === sign.name ? 'var(--color-accent-gold)' : 'var(--color-border-glass)'}`,
+                  borderRadius: '10px',
+                  padding: '10px 4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <span style={{ fontSize: '1.5rem', color: selectedZodiac === sign.name ? 'var(--color-accent-gold)' : 'var(--color-text-main)' }}>{sign.symbol}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{sign.name}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Conditionally Render Horoscope Modal/Section */}
       {selectedZodiac && (
