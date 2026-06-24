@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { astrologyService, calculatorService, masterDataService } from '../services/api';
-import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll, Briefcase, Heart, CircleDollarSign, Activity, Flame, ArrowRight, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll, Flame, ArrowLeft, RefreshCw } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
@@ -24,8 +24,7 @@ const ZODIAC_SIGNS = [
 export const Home: React.FC = () => {
   // Wizard steps: 'concern' | 'birthForm' | 'results'
   const [wizardStep, setWizardStep] = useState<'concern' | 'birthForm' | 'results'>('concern');
-  const [selectedConcern, setSelectedConcern] = useState<'career' | 'marriage' | 'finance' | 'health' | 'spirituality' | 'general' | null>(null);
-  const [formStep, setFormStep] = useState(1);
+  const [selectedConcern, setSelectedConcern] = useState<'career' | 'marriage' | 'finance' | 'health' | 'spirituality' | 'general' | null>('general');
 
   // Birth chart form state
   const [formData, setFormData] = useState({
@@ -35,7 +34,9 @@ export const Home: React.FC = () => {
     pob: '',
     lat: '',
     lon: '',
-    tzone: '5.5'
+    tzone: '5.5',
+    mobile: '',
+    email: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -272,6 +273,9 @@ export const Home: React.FC = () => {
         lat: parseFloat(formData.lat),
         lon: parseFloat(formData.lon),
         tzone: parseFloat(formData.tzone),
+        mobile: formData.mobile,
+        email: formData.email,
+        concern: selectedConcern || 'general',
       });
       const finalData = res.data?.data ?? res.data;
       if (!finalData?.lagna) throw new Error('Invalid chart data received from server.');
@@ -300,8 +304,7 @@ export const Home: React.FC = () => {
 
   const handleResetWizard = () => {
     setWizardStep('concern');
-    setSelectedConcern(null);
-    setFormStep(1);
+    setSelectedConcern('general');
     setChartResult(null);
     setCalcInput(null);
     setCalcData({});
@@ -312,7 +315,9 @@ export const Home: React.FC = () => {
       pob: '',
       lat: '',
       lon: '',
-      tzone: '5.5'
+      tzone: '5.5',
+      mobile: '',
+      email: ''
     });
   };
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -353,119 +358,139 @@ export const Home: React.FC = () => {
     }
   };
 
-  const CONCERNS = [
-    { id: 'career', label: 'Career & Business', desc: 'Job opportunities, promotions, profession and wealth through business.', icon: <Briefcase size={28} />, color: 'var(--color-accent-gold)' },
-    { id: 'marriage', label: 'Marriage & Relationships', desc: 'Partnership compatibility, marital harmony, and relationship timing.', icon: <Heart size={28} />, color: '#ec4899' },
-    { id: 'finance', label: 'Finance & Wealth', desc: 'Financial stability, investments, and wealth-generating Yogas.', icon: <CircleDollarSign size={28} />, color: '#22c55e' },
-    { id: 'health', label: 'Health & Vitality', desc: 'Physical wellness, mental peace, Sade Sati warnings and transits.', icon: <Activity size={28} />, color: '#3b82f6' },
-    { id: 'spirituality', label: 'Spirituality & Purpose', desc: 'Soul purpose, Ishta Devta, spiritual mantra and Nakshatra.', icon: <Flame size={28} />, color: '#f59e0b' },
-    { id: 'general', label: 'General Horoscope', desc: 'Full mathematical Kundali report covering charts, doshas, and predictions.', icon: <Compass size={28} />, color: '#a855f7' },
-  ] as const;
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', minHeight: '80vh' }}>
       
       {/* Hero Header */}
       {wizardStep !== 'results' && (
-        <section style={{ textAlign: 'center', padding: '20px 0 10px 0' }}>
-          <h1 style={{ fontSize: '3rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', fontFamily: 'var(--font-heading)' }}>
-            Discover Your Cosmic Blueprint
+        <section style={{ textAlign: 'center', padding: '40px 0 20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <span style={{ 
+            color: 'var(--color-accent-gold)', 
+            fontSize: '0.85rem', 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.2em', 
+            fontWeight: 600 
+          }}>
+            Your stars make you
+          </span>
+          <h1 style={{ 
+            fontSize: '3.2rem', 
+            lineHeight: '1.2', 
+            maxWidth: '900px', 
+            margin: '0 auto', 
+            color: '#fff', 
+            fontFamily: 'var(--font-heading)' 
+          }}>
+            The sky on the day you began still moves through you.
           </h1>
-          <p style={{ fontSize: '1.15rem', color: 'var(--color-text-muted)', maxWidth: '750px', margin: '0 auto', lineHeight: '1.6' }}>
-            VedaAstro combines ancient mathematical astrology with modern microservices to deliver precision Kundali birth charts, daily planetary analysis, and customized remedies.
+          <p style={{ 
+            fontSize: '1.2rem', 
+            color: 'var(--color-text-muted)', 
+            maxWidth: '700px', 
+            margin: '8px auto 0 auto', 
+            lineHeight: '1.6' 
+          }}>
+            Share a few cosmic coordinates and we'll draw your natal chart — readings, predictions and simple remedies that change small things for big results.
           </p>
         </section>
       )}
 
-      {/* STEP 1: CONCERN SELECTOR */}
+      {/* STEP 1: LANDING PAGE INFO & CTA */}
       {wizardStep === 'concern' && (
-        <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <h2 style={{ fontSize: '1.8rem', color: 'var(--color-accent-gold)', marginBottom: '8px' }}>
-              What brings you here today?
-            </h2>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '1rem' }}>
-              Select a focus area to tailor your Kundali reading and remedies.
-            </p>
-          </div>
-
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '40px', animation: 'fadeIn 0.5s ease-out' }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
             gap: '24px',
-            maxWidth: '1000px',
-            margin: '0 auto 40px auto'
+            maxWidth: '900px',
+            width: '100%'
           }}>
-            {CONCERNS.map((c) => (
-              <div 
-                key={c.id}
-                onClick={() => {
-                  setSelectedConcern(c.id);
-                  setWizardStep('birthForm');
-                  setFormStep(1);
-                }}
-                className="cosmic-card"
-                style={{
-                  cursor: 'pointer',
-                  padding: '28px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.border = `1px solid ${c.color}`;
-                  e.currentTarget.style.boxShadow = `0 0 20px ${c.color}25`;
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.border = '1px solid var(--color-border-glass)';
-                  e.currentTarget.style.boxShadow = 'none';
-                  e.currentTarget.style.transform = 'none';
-                }}
-              >
-                <div style={{
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '12px',
-                  background: `${c.color}15`,
-                  border: `1px solid ${c.color}35`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: c.color
-                }}>
-                  {c.icon}
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', marginBottom: '8px' }}>
-                    {c.label}
-                  </h3>
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
-                    {c.desc}
-                  </p>
-                </div>
+            {/* Feature 1 */}
+            <div className="cosmic-card" style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '12px', 
+              padding: '30px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                width: '44px', 
+                height: '44px', 
+                borderRadius: '10px', 
+                background: 'rgba(212, 175, 55, 0.1)', 
+                border: '1px solid rgba(212, 175, 55, 0.25)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                color: 'var(--color-accent-gold)' 
+              }}>
+                <Sparkles size={22} />
               </div>
-            ))}
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 600, color: '#fff', margin: 0 }}>
+                Transforming Remedies
+              </h3>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>
+                Detailed readings & remedies tailored to your chart.
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="cosmic-card" style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '12px', 
+              padding: '30px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                width: '44px', 
+                height: '44px', 
+                borderRadius: '10px', 
+                background: 'rgba(168, 85, 247, 0.1)', 
+                border: '1px solid rgba(168, 85, 247, 0.25)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                color: '#a855f7' 
+              }}>
+                <Scroll size={22} />
+              </div>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 600, color: '#fff', margin: 0 }}>
+                Mantra Remedies
+              </h3>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>
+                Career, wealth, health & relationships through sacred mantras.
+              </p>
+            </div>
           </div>
+
+          <button 
+            onClick={() => setWizardStep('birthForm')}
+            className="btn-gold"
+            style={{ 
+              padding: '16px 40px', 
+              fontSize: '1.1rem', 
+              borderRadius: '30px', 
+              boxShadow: '0 0 25px rgba(212, 175, 55, 0.35)', 
+              fontWeight: 700 
+            }}
+          >
+            Get your chart Free
+          </button>
         </div>
       )}
 
-      {/* STEP 2: BIRTH DETAILS WIZARD */}
+      {/* STEP 2: SINGLE SCREEN COORDINATES FORM */}
       {wizardStep === 'birthForm' && (
-        <div style={{ maxWidth: '600px', width: '100%', margin: '0 auto', animation: 'fadeIn 0.5s ease-out' }}>
+        <div style={{ maxWidth: '640px', width: '100%', margin: '0 auto', animation: 'fadeIn 0.5s ease-out' }}>
           
-          {/* Back Navigation & Breadcrumb */}
+          {/* Back button */}
           <button 
             onClick={() => {
-              if (formStep > 1) {
-                setFormStep(formStep - 1);
-              } else {
-                setWizardStep('concern');
-                setSelectedConcern(null);
-              }
+              setWizardStep('concern');
+              setSelectedConcern('general');
             }}
             style={{
               background: 'transparent',
@@ -475,287 +500,289 @@ export const Home: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              fontSize: '0.9rem',
+              fontSize: '0.95rem',
               marginBottom: '20px',
               padding: 0
             }}
           >
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={16} /> Back to Home
           </button>
 
-          <div className="cosmic-card" style={{ padding: '36px' }}>
-            {/* Stepper Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '15px', left: '10%', right: '10%', height: '2px', background: 'var(--color-border-glass)', zIndex: 1 }} />
-              <div style={{ position: 'absolute', top: '15px', left: '10%', width: formStep === 1 ? '0%' : formStep === 2 ? '40%' : '80%', height: '2px', background: 'var(--color-accent-gold)', zIndex: 2, transition: 'all 0.3s ease' }} />
-              
-              {[1, 2, 3].map((step) => (
-                <div key={step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 5, flex: 1 }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    background: formStep >= step ? 'var(--color-primary)' : 'var(--color-space-sky)',
-                    border: `2px solid ${formStep >= step ? 'var(--color-accent-gold)' : 'var(--color-border-glass)'}`,
-                    color: formStep >= step ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    boxShadow: formStep === step ? '0 0 10px var(--color-gold-glow)' : 'none',
-                    transition: 'all 0.3s ease'
-                  }}>
-                    {step}
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: formStep === step ? 'var(--color-accent-gold)' : 'var(--color-text-muted)', fontWeight: formStep === step ? 600 : 400 }}>
-                    {step === 1 ? 'Profile' : step === 2 ? 'Birth Info' : 'Location'}
-                  </span>
-                </div>
-              ))}
+          <div className="cosmic-card" style={{ padding: '40px', border: '1px solid var(--color-border-gold)', background: 'rgba(10, 11, 28, 0.75)' }}>
+            
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <h2 style={{ fontSize: '1.8rem', color: 'var(--color-accent-gold-light)', marginBottom: '8px' }}>
+                Your cosmic coordinates
+              </h2>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
+                Use the most precise time recorded.
+              </p>
             </div>
 
-            {/* Stepper Content Form */}
             {!activeFeatures.birth_chart ? (
               <div style={{ padding: '20px 0', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
                 <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', padding: '12px', borderRadius: '50%', display: 'inline-flex' }}>
                   <Compass size={36} />
                 </div>
                 <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                  The Free Birth Chart generation features are currently offline for scheduled maintenance. Please consult our astrologers directly or check back later!
+                  The Free Birth Chart generation features are currently offline for scheduled maintenance. Please check back later!
                 </p>
               </div>
             ) : (
-              <form onSubmit={(e) => { e.preventDefault(); if (formStep === 3) generateKundali(e); }}>
+              <form onSubmit={generateKundali} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 
-                {/* Step 1: Profile Details */}
-                {formStep === 1 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s ease-out' }}>
-                    <h3 style={{ fontSize: '1.4rem', color: 'var(--color-accent-gold-light)', margin: 0 }}>What is your name?</h3>
-                    <div className="form-group">
-                      <label>Name</label>
-                      <input 
-                        type="text" 
-                        name="name" 
-                        placeholder="Enter your name" 
-                        value={formData.name} 
-                        onChange={handleInputChange} 
-                        className="form-input" 
-                        autoFocus
-                        required 
-                      />
-                    </div>
-                    <button 
-                      type="button" 
-                      className="btn-gold" 
-                      onClick={() => { if (formData.name.trim()) setFormStep(2); }}
-                      disabled={!formData.name.trim()}
-                      style={{ marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                    >
-                      Continue <ArrowRight size={16} />
-                    </button>
+                {/* Name */}
+                <div className="form-group">
+                  <label>Full Name</label>
+                  <input 
+                    type="text" 
+                    name="name" 
+                    placeholder="Enter your name" 
+                    value={formData.name} 
+                    onChange={handleInputChange} 
+                    className="form-input" 
+                    required 
+                  />
+                </div>
+
+                {/* Mobile & Email Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="form-group">
+                    <label>Mobile Number *</label>
+                    <input 
+                      type="tel" 
+                      name="mobile" 
+                      placeholder="e.g. +91 98765 43210" 
+                      value={formData.mobile} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
                   </div>
-                )}
-
-                {/* Step 2: Date & Time of Birth */}
-                {formStep === 2 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s ease-out' }}>
-                    <h3 style={{ fontSize: '1.4rem', color: 'var(--color-accent-gold-light)', margin: 0 }}>Date and Time of Birth</h3>
-                    <div className="form-group">
-                      <label>Date of Birth</label>
-                      <input 
-                        type="date" 
-                        name="dob" 
-                        value={formData.dob} 
-                        onChange={handleInputChange} 
-                        className="form-input" 
-                        required 
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Time of Birth</label>
-                      <input 
-                        type="time" 
-                        name="tob" 
-                        value={formData.tob} 
-                        onChange={handleInputChange} 
-                        className="form-input" 
-                        required 
-                      />
-                    </div>
-                    <button 
-                      type="button" 
-                      className="btn-gold" 
-                      onClick={() => { if (formData.dob && formData.tob) setFormStep(3); }}
-                      disabled={!formData.dob || !formData.tob}
-                      style={{ marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                    >
-                      Continue <ArrowRight size={16} />
-                    </button>
+                  <div className="form-group">
+                    <label>Email Address</label>
+                    <input 
+                      type="email" 
+                      name="email" 
+                      placeholder="e.g. you@example.com" 
+                      value={formData.email} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                    />
                   </div>
-                )}
+                </div>
 
-                {/* Step 3: Location of Birth */}
-                {formStep === 3 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.3s ease-out' }}>
-                    <h3 style={{ fontSize: '1.4rem', color: 'var(--color-accent-gold-light)', margin: 0 }}>Place of Birth</h3>
-                    <div className="form-group" style={{ position: 'relative', marginBottom: 0 }}>
-                      <label>Birth Place City</label>
-                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                        <input 
-                          type="text" 
-                          name="pob" 
-                          placeholder="e.g. Mumbai, India" 
-                          value={formData.pob} 
-                          onChange={handleInputChange}
-                          className="form-input"
-                          style={{ flex: 1, paddingRight: '40px' }}
-                          required
-                        />
-                        <div style={{ position: 'absolute', right: '12px', display: 'flex', alignItems: 'center', color: 'var(--color-accent-gold)', opacity: 0.8 }}>
-                          {geoLoading ? (
-                            <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                          ) : (
-                            <Search size={16} />
-                          )}
-                        </div>
-                      </div>
-                      
-                      {geoSuggestions.length > 0 && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          zIndex: 150,
-                          background: 'rgba(10, 11, 28, 0.98)',
-                          backdropFilter: 'blur(8px)',
-                          border: '1px solid var(--color-border-gold)',
-                          borderRadius: '10px',
-                          marginTop: '6px',
-                          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.6)',
-                          maxHeight: '200px',
-                          overflowY: 'auto'
-                        }}>
-                          {geoSuggestions.map((s, i) => {
-                            const address = s.address || {};
-                            const primary = s.name || s.display_name.split(',')[0].trim();
-                            const state = address.state || address.region || address.province || '';
-                            const country = address.country || '';
-                            
-                            const mainName = primary;
-                            const secondaryParts = [];
-                            if (state && state.toLowerCase() !== primary.toLowerCase()) {
-                              secondaryParts.push(state);
-                            }
-                            if (country && country.toLowerCase() !== primary.toLowerCase()) {
-                              secondaryParts.push(country);
-                            }
-                            const secondaryName = secondaryParts.join(', ');
-                            
-                            return (
-                              <div
-                                key={i}
-                                onClick={() => selectGeoSuggestion(s)}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '12px',
-                                  padding: '12px 16px',
-                                  cursor: 'pointer',
-                                  borderBottom: i < geoSuggestions.length - 1 ? '1px solid var(--color-border-glass)' : 'none',
-                                  transition: 'background 0.2s ease',
-                                }}
-                                onMouseEnter={e => {
-                                  e.currentTarget.style.background = 'rgba(212,175,55,0.1)';
-                                }}
-                                onMouseLeave={e => {
-                                  e.currentTarget.style.background = 'transparent';
-                                }}
-                              >
-                                <span style={{ fontSize: '0.9rem' }}>📍</span>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1, justifyContent: 'center' }}>
-                                  <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
-                                    {mainName}
-                                  </span>
-                                  {secondaryName && (
-                                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
-                                      {secondaryName}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                {/* DOB & TOB Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="form-group">
+                    <label>Date of Birth</label>
+                    <input 
+                      type="date" 
+                      name="dob" 
+                      value={formData.dob} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Time of Birth</label>
+                    <input 
+                      type="time" 
+                      name="tob" 
+                      value={formData.tob} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
+                  </div>
+                </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label>Latitude</label>
-                        <input 
-                          type="number" 
-                          step="any"
-                          name="lat" 
-                          value={formData.lat} 
-                          onChange={handleInputChange} 
-                          className="form-input" 
-                          required 
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label>Longitude</label>
-                        <input 
-                          type="number" 
-                          step="any"
-                          name="lon" 
-                          value={formData.lon} 
-                          onChange={handleInputChange} 
-                          className="form-input" 
-                          required 
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label>Timezone</label>
-                        <input 
-                          type="number" 
-                          step="any"
-                          name="tzone" 
-                          value={formData.tzone} 
-                          onChange={handleInputChange} 
-                          className="form-input" 
-                          required 
-                        />
-                      </div>
-                    </div>
-
-                    <button 
-                      type="submit" 
-                      className="btn-gold" 
-                      style={{ width: '100%', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                      disabled={loading || !formData.lat || !formData.lon}
-                    >
-                      {loading ? (
-                        <>
-                          <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> Aligning Planets...
-                        </>
+                {/* POB Autocomplete */}
+                <div className="form-group" style={{ position: 'relative', marginBottom: 0 }}>
+                  <label>Place of Birth</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input 
+                      type="text" 
+                      name="pob" 
+                      placeholder="e.g. Mumbai, India" 
+                      value={formData.pob} 
+                      onChange={handleInputChange}
+                      className="form-input"
+                      style={{ paddingRight: '40px' }}
+                      required
+                    />
+                    <div style={{ position: 'absolute', right: '12px', display: 'flex', alignItems: 'center', color: 'var(--color-accent-gold)', opacity: 0.8 }}>
+                      {geoLoading ? (
+                        <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
                       ) : (
-                        <>
-                          <Sparkles size={18} /> Align Planets & Generate Chart
-                        </>
+                        <Search size={16} />
                       )}
-                    </button>
+                    </div>
                   </div>
-                )}
+                  
+                  {geoSuggestions.length > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      zIndex: 150,
+                      background: 'rgba(10, 11, 28, 0.98)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid var(--color-border-gold)',
+                      borderRadius: '10px',
+                      marginTop: '6px',
+                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.6)',
+                      maxHeight: '200px',
+                      overflowY: 'auto'
+                    }}>
+                      {geoSuggestions.map((s, i) => {
+                        const address = s.address || {};
+                        const primary = s.name || s.display_name.split(',')[0].trim();
+                        const state = address.state || address.region || address.province || '';
+                        const country = address.country || '';
+                        
+                        const mainName = primary;
+                        const secondaryParts = [];
+                        if (state && state.toLowerCase() !== primary.toLowerCase()) {
+                          secondaryParts.push(state);
+                        }
+                        if (country && country.toLowerCase() !== primary.toLowerCase()) {
+                          secondaryParts.push(country);
+                        }
+                        const secondaryName = secondaryParts.join(', ');
+                        
+                        return (
+                          <div
+                            key={i}
+                            onClick={() => selectGeoSuggestion(s)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              padding: '12px 16px',
+                              cursor: 'pointer',
+                              borderBottom: i < geoSuggestions.length - 1 ? '1px solid var(--color-border-glass)' : 'none',
+                              transition: 'background 0.2s ease',
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = 'rgba(212,175,55,0.1)';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            <span style={{ fontSize: '0.9rem' }}>📍</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1, justifyContent: 'center' }}>
+                              <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
+                                {mainName}
+                              </span>
+                              {secondaryName && (
+                                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
+                                  {secondaryName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
-                {chartError && (
-                  <div style={{ marginTop: '16px', padding: '12px', borderRadius: '8px', background: 'rgba(231,76,60,0.1)', border: '1px solid #e74c3c', color: '#e74c3c', fontSize: '0.9rem' }}>
-                    ⚠ {chartError}
+                {/* Focus Concern Selector Dropdown */}
+                <div className="form-group">
+                  <label>Primary Life Focus (Tailors Remedies & Analysis)</label>
+                  <select
+                    name="selectedConcern"
+                    value={selectedConcern || 'general'}
+                    onChange={(e) => setSelectedConcern(e.target.value as any)}
+                    className="form-input"
+                    style={{ background: 'rgba(5, 6, 15, 0.85)', border: '1px solid var(--color-border-glass)', cursor: 'pointer' }}
+                  >
+                    <option value="general">General Horoscope Reading</option>
+                    <option value="career">Career & Professional Growth</option>
+                    <option value="marriage">Marriage & Relationships</option>
+                    <option value="finance">Wealth, Finance & Prosperity</option>
+                    <option value="health">Health, Vitality & Sade Sati</option>
+                    <option value="spirituality">Spirituality & Soul Purpose</option>
+                  </select>
+                </div>
+
+                {/* Expandable Manual Coordinates option */}
+                <details style={{ width: '100%', color: 'var(--color-text-muted)', fontSize: '0.88rem' }}>
+                  <summary style={{ cursor: 'pointer', userSelect: 'none', color: 'var(--color-accent-gold-light)' }}>
+                    Coordinate Overrides (Optional)
+                  </summary>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '12px' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Latitude</label>
+                      <input 
+                        type="number" 
+                        step="any"
+                        name="lat" 
+                        value={formData.lat} 
+                        onChange={handleInputChange} 
+                        className="form-input" 
+                        required 
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Longitude</label>
+                      <input 
+                        type="number" 
+                        step="any"
+                        name="lon" 
+                        value={formData.lon} 
+                        onChange={handleInputChange} 
+                        className="form-input" 
+                        required 
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Timezone</label>
+                      <input 
+                        type="number" 
+                        step="any"
+                        name="tzone" 
+                        value={formData.tzone} 
+                        onChange={handleInputChange} 
+                        className="form-input" 
+                        required 
+                      />
+                    </div>
                   </div>
-                )}
+                </details>
+
+                <button 
+                  type="submit" 
+                  className="btn-gold" 
+                  style={{ width: '100%', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  disabled={loading || !formData.lat || !formData.lon}
+                >
+                  {loading ? (
+                    <>
+                      <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> Aligning Planets...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={18} /> Draw Natal Chart
+                    </>
+                  )}
+                </button>
               </form>
             )}
+
+            {chartError && (
+              <div style={{ marginTop: '16px', padding: '12px', borderRadius: '8px', background: 'rgba(231,76,60,0.1)', border: '1px solid #e74c3c', color: '#e74c3c', fontSize: '0.9rem' }}>
+                ⚠ {chartError}
+              </div>
+            )}
+
+            <div style={{ marginTop: '24px', fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
+              Your details stay private · No spam · Ever
+            </div>
           </div>
         </div>
       )}
@@ -1082,24 +1109,28 @@ export const Home: React.FC = () => {
 
         return (
           <section style={{ marginTop: '20px', animation: 'fadeIn 0.5s ease-out' }}>
-            {/* Header Action Bar */}
+            {/* Header Action Bar in Aetheris Style */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               flexWrap: 'wrap',
-              gap: '16px',
+              gap: '24px',
               marginBottom: '32px',
               borderBottom: '1px solid var(--color-border-glass)',
-              paddingBottom: '20px'
+              paddingBottom: '24px',
+              textAlign: 'left'
             }}>
               <div>
-                <p style={{ color: 'var(--color-accent-gold)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px 0', fontWeight: 600 }}>
-                  Personalized Reading for {formData.name}
+                <p style={{ color: 'var(--color-accent-gold)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.2em', margin: '0 0 8px 0', fontWeight: 600 }}>
+                  Today · Welcome
                 </p>
-                <h2 style={{ fontSize: '2rem', color: '#fff', margin: 0, fontFamily: 'var(--font-heading)' }}>
-                  {getConcernTitle()}
-                </h2>
+                <h1 style={{ fontSize: '2.5rem', color: '#fff', margin: '0 0 12px 0', fontFamily: 'var(--font-heading)' }}>
+                  Your chart awaits.
+                </h1>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '1.05rem', margin: 0, maxWidth: '650px', lineHeight: '1.6' }}>
+                  This is your celestial home. Daily transits, lunar phases, and your natal blueprint will appear here.
+                </p>
               </div>
               <button 
                 onClick={handleResetWizard}
@@ -1108,18 +1139,47 @@ export const Home: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '8px 16px',
-                  fontSize: '0.85rem'
+                  padding: '10px 20px',
+                  fontSize: '0.9rem',
+                  borderRadius: '20px',
+                  alignSelf: 'center'
                 }}
               >
-                <RefreshCw size={14} /> Reset / New Reading
+                <RefreshCw size={14} /> Edit Chart
               </button>
             </div>
 
+            {/* Aetheris Big Three summary grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '20px',
+              marginBottom: '40px'
+            }}>
+              <div className="cosmic-card" style={{ padding: '24px', textAlign: 'center', border: '1px solid var(--color-border-glass)' }}>
+                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: '8px' }}>Sun</span>
+                <p style={{ fontSize: '1.8rem', fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>
+                  {chartResult?.planets?.find((p: any) => p.name === 'Sun')?.sign || 'N/A'}
+                </p>
+              </div>
+              <div className="cosmic-card" style={{ padding: '24px', textAlign: 'center', border: '1px solid var(--color-border-glass)' }}>
+                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: '8px' }}>Moon</span>
+                <p style={{ fontSize: '1.8rem', fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>
+                  {chartResult?.planets?.find((p: any) => p.name === 'Moon')?.sign || 'N/A'}
+                </p>
+              </div>
+              <div className="cosmic-card" style={{ padding: '24px', textAlign: 'center', border: '1px solid var(--color-border-glass)' }}>
+                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: '8px' }}>Rising</span>
+                <p style={{ fontSize: '1.8rem', fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>
+                  {chartResult?.lagna || 'N/A'}
+                </p>
+              </div>
+            </div>
+
             {/* Personalized Remedies Advisory Grid */}
-            <div style={{ marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '1.25rem', color: 'var(--color-accent-gold-light)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={18} /> Personalized Remedies Advisor
+            <div style={{ marginBottom: '40px' }}>
+              <h3 style={{ fontSize: '1.25rem', color: 'var(--color-accent-gold-light)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-heading)' }}>
+                <Sparkles size={18} /> Personalized Remedies Advisor (Focus: {getConcernTitle()})
               </h3>
               {renderRemediesAdvisor()}
             </div>
