@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { astrologyService, calculatorService, masterDataService } from '../services/api';
-import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll, Flame, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll, Flame, RefreshCw, Calendar } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
@@ -23,8 +23,11 @@ const ZODIAC_SIGNS = [
 
 export const Home: React.FC = () => {
   // Wizard steps: 'concern' | 'birthForm' | 'results'
-  const [wizardStep, setWizardStep] = useState<'concern' | 'birthForm' | 'results'>('concern');
+  const [wizardStep, setWizardStep] = useState<'concern' | 'birthForm' | 'results'>('birthForm');
   const [selectedConcern, setSelectedConcern] = useState<'career' | 'marriage' | 'finance' | 'health' | 'spirituality' | 'general' | null>('general');
+  const [chartStyle, setChartStyle] = useState<'north' | 'south'>('north');
+
+  const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' };
 
   // Birth chart form state
   const [formData, setFormData] = useState({
@@ -36,7 +39,8 @@ export const Home: React.FC = () => {
     lon: '',
     tzone: '5.5',
     mobile: '',
-    email: ''
+    email: '',
+    gender: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -55,6 +59,14 @@ export const Home: React.FC = () => {
     navamsa_chart: true,
     dasha: true,
   });
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const loadActiveFeatures = async () => {
@@ -77,6 +89,8 @@ export const Home: React.FC = () => {
     };
     loadActiveFeatures();
   }, []);
+
+
 
   // Calculator results — loaded after chart generation
   const [activeTab, setActiveTab] = useState('chart');
@@ -276,6 +290,7 @@ export const Home: React.FC = () => {
         mobile: formData.mobile,
         email: formData.email,
         concern: selectedConcern || 'general',
+        gender: formData.gender,
       });
       const finalData = res.data?.data ?? res.data;
       if (!finalData?.lagna) throw new Error('Invalid chart data received from server.');
@@ -302,8 +317,37 @@ export const Home: React.FC = () => {
     }
   };
 
+  const handleDownloadPdf = async () => {
+    if (!calcInput) return;
+    
+    const pdfInput = {
+      ...calcInput,
+      name: formData.name,
+      dob: formData.dob,
+      tob: formData.tob,
+      pob: formData.pob,
+      mobile: formData.mobile,
+      email: formData.email,
+      concern: selectedConcern || 'general',
+      style: chartStyle
+    };
+    
+    try {
+      const response = await calculatorService.pdfReport(pdfInput as any);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `Astrology_Report_${formData.name.replace(/\s+/g, '_') || 'Kundali'}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(link.href);
+    } catch (err) {
+      console.error('Failed to download PDF report', err);
+      alert('Failed to download PDF report. Please try again.');
+    }
+  };
+
   const handleResetWizard = () => {
-    setWizardStep('concern');
+    setWizardStep('birthForm');
     setSelectedConcern('general');
     setChartResult(null);
     setCalcInput(null);
@@ -317,10 +361,11 @@ export const Home: React.FC = () => {
       lon: '',
       tzone: '5.5',
       mobile: '',
-      email: ''
+      email: '',
+      gender: ''
     });
   };
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     if (e.target.name === 'pob') {
       skipSearchRef.current = false;
       if (!e.target.value.trim()) {
@@ -363,39 +408,7 @@ export const Home: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', minHeight: '80vh' }}>
       
-      {/* Hero Header */}
-      {wizardStep !== 'results' && (
-        <section style={{ textAlign: 'center', padding: '40px 0 20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-          <span style={{ 
-            color: 'var(--color-accent-gold)', 
-            fontSize: '0.85rem', 
-            textTransform: 'uppercase', 
-            letterSpacing: '0.2em', 
-            fontWeight: 600 
-          }}>
-            Your stars make you
-          </span>
-          <h1 style={{ 
-            fontSize: '3.2rem', 
-            lineHeight: '1.2', 
-            maxWidth: '900px', 
-            margin: '0 auto', 
-            color: '#fff', 
-            fontFamily: 'var(--font-heading)' 
-          }}>
-            The sky on the day you began still moves through you.
-          </h1>
-          <p style={{ 
-            fontSize: '1.2rem', 
-            color: 'var(--color-text-muted)', 
-            maxWidth: '700px', 
-            margin: '8px auto 0 auto', 
-            lineHeight: '1.6' 
-          }}>
-            Share a few cosmic coordinates and we'll draw your natal chart — readings, predictions and simple remedies that change small things for big results.
-          </p>
-        </section>
-      )}
+
 
       {/* STEP 1: LANDING PAGE INFO & CTA */}
       {wizardStep === 'concern' && (
@@ -484,60 +497,213 @@ export const Home: React.FC = () => {
 
       {/* STEP 2: SINGLE SCREEN COORDINATES FORM */}
       {wizardStep === 'birthForm' && (
-        <div style={{ maxWidth: '640px', width: '100%', margin: '0 auto', animation: 'fadeIn 0.5s ease-out' }}>
+        <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', animation: 'fadeIn 0.5s ease-out' }}>
           
-          {/* Back button */}
-          <button 
-            onClick={() => {
-              setWizardStep('concern');
-              setSelectedConcern('general');
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--color-text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.95rem',
-              marginBottom: '20px',
-              padding: 0
-            }}
-          >
-            <ArrowLeft size={16} /> Back to Home
-          </button>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1.1fr 1fr',
+            gap: '40px',
+            alignItems: 'start',
+            marginTop: '20px'
+          }}>
+            {/* Left Column - Info Panel */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', textAlign: 'left' }}>
+              {/* Brand Logo Header + Login */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #d4af37 0%, #b38f1d 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 15px rgba(212,175,55,0.4)'
+                  }}>
+                    <Compass size={22} color="#05060f" />
+                  </div>
+                  <span style={{
+                    fontSize: '1.4rem',
+                    fontFamily: 'var(--font-heading)',
+                    color: '#ffffff',
+                    fontWeight: 'bold',
+                    letterSpacing: '0.1em'
+                  }}>
+                    VEDAASTRO
+                  </span>
+                </div>
+                <a
+                  href="/login"
+                  className="btn-gold"
+                  style={{
+                    padding: '8px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.82rem',
+                    borderRadius: '20px',
+                    textDecoration: 'none'
+                  }}
+                >
+                  Login
+                </a>
+              </div>
 
-          <div className="cosmic-card" style={{ padding: '40px', border: '1px solid var(--color-border-gold)', background: 'rgba(10, 11, 28, 0.75)' }}>
-            
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <h2 style={{ fontSize: '1.8rem', color: 'var(--color-accent-gold-light)', marginBottom: '8px' }}>
-                Your cosmic coordinates
-              </h2>
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
-                Use the most precise time recorded.
+              {/* Tagline Badge */}
+              <div style={{
+                alignSelf: 'flex-start',
+                border: '1px solid var(--color-border-gold)',
+                padding: '6px 16px',
+                borderRadius: '20px',
+                fontSize: '0.75rem',
+                letterSpacing: '0.15em',
+                color: 'var(--color-accent-gold)',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                background: 'rgba(212,175,55,0.05)'
+              }}>
+                YOUR STARS MAKE YOU
+              </div>
+
+              {/* Main Heading */}
+              <h1 style={{
+                fontSize: isMobile ? '2.2rem' : '2.8rem',
+                lineHeight: '1.2',
+                color: '#ffffff',
+                fontFamily: 'var(--font-heading)',
+                fontWeight: 600,
+                margin: 0,
+                letterSpacing: '0.02em',
+              }}>
+                Cosmos works for you you have to align Best life awaits you.
+              </h1>
+
+              {/* Description Paragraph */}
+              <p style={{
+                fontSize: '1.05rem',
+                lineHeight: '1.65',
+                color: 'var(--color-text-muted)',
+                margin: 0
+              }}>
+                Share your birth details and we'll draw your natal chart Readings, predictions with Yogas and Doshas. Simple remedies that change small things for big results. BE THE BEST YOU.
               </p>
+
+              {/* Bottom Remedy Cards */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: '20px',
+                marginTop: '12px'
+              }}>
+                {/* Transforming Remedies Card */}
+                <div className="cosmic-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    border: '1px solid var(--color-border-gold)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--color-accent-gold)'
+                  }}>
+                    <Sparkles size={16} />
+                  </div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, color: '#fff' }}>
+                    Transforming Remedies
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0, lineHeight: '1.5' }}>
+                    Detailed readings & remedies tailored to your chart.
+                  </p>
+                  <a href="#remedies" style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: 'var(--color-accent-gold)',
+                    letterSpacing: '0.05em',
+                    marginTop: '12px'
+                  }}>
+                    SPECIAL OFFERS FOR YOU →
+                  </a>
+                </div>
+
+                {/* Mantra Remedies Card */}
+                <div className="cosmic-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    border: '1px solid var(--color-border-gold)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--color-accent-gold)'
+                  }}>
+                    <Scroll size={16} />
+                  </div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, color: '#fff' }}>
+                    Mantra Remedies
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0, lineHeight: '1.5' }}>
+                    Career, wealth, health & relationships through sacred mantras.
+                  </p>
+                  <a href="#mantras" style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: 'var(--color-accent-gold)',
+                    letterSpacing: '0.05em',
+                    marginTop: '12px'
+                  }}>
+                    SPECIAL OFFERS FOR YOU →
+                  </a>
+                </div>
+              </div>
             </div>
 
-            {!activeFeatures.birth_chart ? (
-              <div style={{ padding: '20px 0', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
-                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', padding: '12px', borderRadius: '50%', display: 'inline-flex' }}>
-                  <Compass size={36} />
-                </div>
-                <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                  The Free Birth Chart generation features are currently offline for scheduled maintenance. Please check back later!
-                </p>
+            {/* Right Column - Form Card */}
+            <div className="cosmic-card" style={{
+              padding: '40px',
+              border: '1px solid var(--color-border-gold)',
+              background: 'rgba(10, 11, 28, 0.75)'
+            }}>
+              <div style={{ textAlign: 'left', marginBottom: '24px' }}>
+                <span style={{ fontSize: '0.75rem', letterSpacing: '0.2em', color: 'var(--color-accent-gold)', fontWeight: 700, display: 'block' }}>
+                  BEGIN
+                </span>
+                <h2 style={{
+                  fontSize: '2rem',
+                  color: 'var(--color-accent-gold-light)',
+                  margin: '4px 0 0 0',
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 600
+                }}>
+                  Your cosmic coordinates
+                </h2>
               </div>
-            ) : (
-              <form onSubmit={generateKundali} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                
-                {/* Name */}
-                <div className="form-group">
-                  <label>Full Name</label>
+
+              {chartError && (
+                <div style={{
+                  background: 'rgba(231,76,60,0.1)',
+                  border: '1px solid #e74c3c',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  color: '#e74c3c',
+                  fontSize: '0.85rem',
+                  marginBottom: '16px',
+                  textAlign: 'left'
+                }}>
+                  ⚠ {chartError}
+                </div>
+              )}
+
+              <form onSubmit={generateKundali} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Full Name */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>FULL NAME *</label>
                   <input 
                     type="text" 
                     name="name" 
-                    placeholder="Enter your name" 
+                    placeholder="Cassiopeia Vance" 
                     value={formData.name} 
                     onChange={handleInputChange} 
                     className="form-input" 
@@ -545,161 +711,189 @@ export const Home: React.FC = () => {
                   />
                 </div>
 
-                {/* Mobile & Email Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div className="form-group">
-                    <label>Mobile Number *</label>
-                    <input 
-                      type="tel" 
-                      name="mobile" 
-                      placeholder="e.g. +91 98765 43210" 
-                      value={formData.mobile} 
+                {/* Sex & Date of Birth Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '16px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>SEX *</label>
+                    <select 
+                      name="gender" 
+                      value={formData.gender} 
                       onChange={handleInputChange} 
-                      className="form-input" 
-                      required 
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Email Address</label>
-                    <input 
-                      type="email" 
-                      name="email" 
-                      placeholder="e.g. you@example.com" 
-                      value={formData.email} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                    />
-                  </div>
-                </div>
-
-                {/* DOB & TOB Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div className="form-group">
-                    <label>Date of Birth</label>
-                    <input 
-                      type="date" 
-                      name="dob" 
-                      value={formData.dob} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      required 
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Time of Birth</label>
-                    <input 
-                      type="time" 
-                      name="tob" 
-                      value={formData.tob} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      required 
-                    />
-                  </div>
-                </div>
-
-                {/* POB Autocomplete */}
-                <div className="form-group" style={{ position: 'relative', marginBottom: 0 }}>
-                  <label>Place of Birth</label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input 
-                      type="text" 
-                      name="pob" 
-                      placeholder="e.g. Mumbai, India" 
-                      value={formData.pob} 
-                      onChange={handleInputChange}
                       className="form-input"
-                      style={{ paddingRight: '40px' }}
+                      style={{ background: 'rgba(5, 6, 15, 0.85)', cursor: 'pointer' }}
                       required
-                    />
-                    <div style={{ position: 'absolute', right: '12px', display: 'flex', alignItems: 'center', color: 'var(--color-accent-gold)', opacity: 0.8 }}>
-                      {geoLoading ? (
-                        <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                      ) : (
-                        <Search size={16} />
-                      )}
+                    >
+                      <option value="" disabled>Select...</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>DATE OF BIRTH *</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="date" 
+                        name="dob" 
+                        value={formData.dob} 
+                        onChange={handleInputChange} 
+                        className="form-input" 
+                        required 
+                      />
+                      <Calendar size={16} color="var(--color-accent-gold)" style={{ position: 'absolute', right: '16px', pointerEvents: 'none', opacity: 0.8 }} />
                     </div>
                   </div>
-                  
-                  {geoSuggestions.length > 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      zIndex: 150,
-                      background: 'rgba(10, 11, 28, 0.98)',
-                      backdropFilter: 'blur(8px)',
-                      border: '1px solid var(--color-border-gold)',
-                      borderRadius: '10px',
-                      marginTop: '6px',
-                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.6)',
-                      maxHeight: '200px',
-                      overflowY: 'auto'
-                    }}>
-                      {geoSuggestions.map((s, i) => {
-                        const address = s.address || {};
-                        const primary = s.name || s.display_name.split(',')[0].trim();
-                        const state = address.state || address.region || address.province || '';
-                        const country = address.country || '';
-                        
-                        const mainName = primary;
-                        const secondaryParts = [];
-                        if (state && state.toLowerCase() !== primary.toLowerCase()) {
-                          secondaryParts.push(state);
-                        }
-                        if (country && country.toLowerCase() !== primary.toLowerCase()) {
-                          secondaryParts.push(country);
-                        }
-                        const secondaryName = secondaryParts.join(', ');
-                        
-                        return (
-                          <div
-                            key={i}
-                            onClick={() => selectGeoSuggestion(s)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '12px',
-                              padding: '12px 16px',
-                              cursor: 'pointer',
-                              borderBottom: i < geoSuggestions.length - 1 ? '1px solid var(--color-border-glass)' : 'none',
-                              transition: 'background 0.2s ease',
-                            }}
-                            onMouseEnter={e => {
-                              e.currentTarget.style.background = 'rgba(212,175,55,0.1)';
-                            }}
-                            onMouseLeave={e => {
-                              e.currentTarget.style.background = 'transparent';
-                            }}
-                          >
-                            <span style={{ fontSize: '0.9rem' }}>📍</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1, justifyContent: 'center' }}>
-                              <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
-                                {mainName}
-                              </span>
-                              {secondaryName && (
-                                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
-                                  {secondaryName}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
 
-                {/* Focus Concern Selector Dropdown */}
-                <div className="form-group">
-                  <label>Primary Life Focus (Tailors Remedies & Analysis)</label>
+                {/* Time of Birth & Place of Birth Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '16px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>TIME OF BIRTH *</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="time" 
+                        name="tob" 
+                        value={formData.tob} 
+                        onChange={handleInputChange} 
+                        className="form-input" 
+                        required 
+                      />
+                      <Clock size={16} color="var(--color-accent-gold)" style={{ position: 'absolute', right: '16px', pointerEvents: 'none', opacity: 0.8 }} />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0, position: 'relative' }}>
+                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>PLACE OF BIRTH *</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="text" 
+                        name="pob" 
+                        placeholder="City, Country" 
+                        value={formData.pob} 
+                        onChange={handleInputChange}
+                        className="form-input"
+                        style={{ paddingRight: '40px' }}
+                        required
+                      />
+                      <div style={{ position: 'absolute', right: '14px', display: 'flex', alignItems: 'center', color: 'var(--color-accent-gold)', opacity: 0.8 }}>
+                        {geoLoading ? (
+                          <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                        ) : (
+                          <Search size={16} />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Location Autocomplete Dropdown */}
+                    {geoSuggestions.length > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        zIndex: 150,
+                        background: 'rgba(10, 11, 28, 0.98)',
+                        backdropFilter: 'blur(8px)',
+                        border: '1px solid var(--color-border-gold)',
+                        borderRadius: '10px',
+                        marginTop: '6px',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.6)',
+                        maxHeight: '200px',
+                        overflowY: 'auto'
+                      }}>
+                        {geoSuggestions.map((s, i) => {
+                          const address = s.address || {};
+                          const primary = s.name || s.display_name.split(',')[0].trim();
+                          const state = address.state || address.region || address.province || '';
+                          const country = address.country || '';
+                          
+                          const mainName = primary;
+                          const secondaryParts = [];
+                          if (state && state.toLowerCase() !== primary.toLowerCase()) {
+                            secondaryParts.push(state);
+                          }
+                          if (country && country.toLowerCase() !== primary.toLowerCase()) {
+                            secondaryParts.push(country);
+                          }
+                          const secondaryName = secondaryParts.join(', ');
+                          
+                          return (
+                            <div
+                              key={i}
+                              onClick={() => selectGeoSuggestion(s)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '12px 16px',
+                                cursor: 'pointer',
+                                borderBottom: i < geoSuggestions.length - 1 ? '1px solid var(--color-border-glass)' : 'none',
+                                transition: 'background 0.2s ease',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = 'rgba(212,175,55,0.1)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = 'transparent';
+                              }}
+                            >
+                              <span style={{ fontSize: '0.9rem' }}>📍</span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1, justifyContent: 'center' }}>
+                                <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
+                                  {mainName}
+                                </span>
+                                {secondaryName && (
+                                  <span style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
+                                    {secondaryName}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mobile Number */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>MOBILE NUMBER *</label>
+                  <input 
+                    type="tel" 
+                    name="mobile" 
+                    placeholder="e.g. +91 98765 43210" 
+                    value={formData.mobile} 
+                    onChange={handleInputChange} 
+                    className="form-input" 
+                    required 
+                  />
+                </div>
+
+                {/* Email Address */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>EMAIL ADDRESS *</label>
+                  <input 
+                    type="email" 
+                    name="email" 
+                    placeholder="celestial@archive.com" 
+                    value={formData.email} 
+                    onChange={handleInputChange} 
+                    className="form-input" 
+                    required
+                  />
+                </div>
+
+                {/* Concern Selector */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>PRIMARY LIFE FOCUS (TAILORS REMEDIES)</label>
                   <select
                     name="selectedConcern"
                     value={selectedConcern || 'general'}
                     onChange={(e) => setSelectedConcern(e.target.value as any)}
                     className="form-input"
-                    style={{ background: 'rgba(5, 6, 15, 0.85)', border: '1px solid var(--color-border-glass)', cursor: 'pointer' }}
+                    style={{ background: 'rgba(5, 6, 15, 0.85)', cursor: 'pointer' }}
                   >
                     <option value="general">General Horoscope Reading</option>
                     <option value="career">Career & Professional Growth</option>
@@ -710,14 +904,14 @@ export const Home: React.FC = () => {
                   </select>
                 </div>
 
-                {/* Expandable Manual Coordinates option */}
-                <details style={{ width: '100%', color: 'var(--color-text-muted)', fontSize: '0.88rem' }}>
-                  <summary style={{ cursor: 'pointer', userSelect: 'none', color: 'var(--color-accent-gold-light)' }}>
-                    Coordinate Overrides (Optional)
+                {/* Manual Coordinates Overrides */}
+                <details style={{ width: '100%', color: 'var(--color-text-muted)', fontSize: '0.82rem', marginTop: '4px' }}>
+                  <summary style={{ cursor: 'pointer', userSelect: 'none', color: 'var(--color-accent-gold-light)', fontWeight: 700 }}>
+                    COORDINATE OVERRIDES (OPTIONAL)
                   </summary>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '12px' }}>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label>Latitude</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ ...labelStyle, fontSize: '0.65rem', marginBottom: 0 }}>LATITUDE</label>
                       <input 
                         type="number" 
                         step="any"
@@ -728,8 +922,8 @@ export const Home: React.FC = () => {
                         required 
                       />
                     </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label>Longitude</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ ...labelStyle, fontSize: '0.65rem', marginBottom: 0 }}>LONGITUDE</label>
                       <input 
                         type="number" 
                         step="any"
@@ -740,8 +934,8 @@ export const Home: React.FC = () => {
                         required 
                       />
                     </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label>Timezone</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ ...labelStyle, fontSize: '0.65rem', marginBottom: 0 }}>TIMEZONE</label>
                       <input 
                         type="number" 
                         step="any"
@@ -755,33 +949,64 @@ export const Home: React.FC = () => {
                   </div>
                 </details>
 
+                {/* Submit Button */}
                 <button 
                   type="submit" 
                   className="btn-gold" 
-                  style={{ width: '100%', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                   disabled={loading || !formData.lat || !formData.lon}
+                  style={{
+                    width: '100%',
+                    marginTop: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    borderRadius: '30px',
+                    padding: '16px 20px',
+                    fontWeight: 700
+                  }}
                 >
                   {loading ? (
                     <>
-                      <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> Aligning Planets...
+                      <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> Generating Chart...
                     </>
                   ) : (
-                    <>
-                      <Sparkles size={18} /> Draw Natal Chart
-                    </>
+                    'OPEN MY CHART — FREE'
                   )}
                 </button>
               </form>
-            )}
 
-            {chartError && (
-              <div style={{ marginTop: '16px', padding: '12px', borderRadius: '8px', background: 'rgba(231,76,60,0.1)', border: '1px solid #e74c3c', color: '#e74c3c', fontSize: '0.9rem' }}>
-                ⚠ {chartError}
+              {/* Sub-buttons/tabs below the button */}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '20px', justifyContent: 'center' }}>
+                <button 
+                  type="button" 
+                  className="btn-outline"
+                  style={{
+                    borderRadius: '20px',
+                    padding: '8px 16px',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  TRANSFORMING REMEDIES
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-outline"
+                  style={{
+                    borderRadius: '20px',
+                    padding: '8px 16px',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  MANTRA REMEDIES
+                </button>
               </div>
-            )}
-
-            <div style={{ marginTop: '24px', fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
-              Your details stay private · No spam · Ever
             </div>
           </div>
         </div>
@@ -792,7 +1017,7 @@ export const Home: React.FC = () => {
         const TABS = [
           { id: 'chart',    label: 'Charts & Dasha', icon: <Compass size={15} /> },
           { id: 'doshas',   label: 'Dosha Report',   icon: <ShieldAlert size={15} /> },
-          // { id: 'lalkitab', label: 'Lal Kitab Remedies', icon: <Scroll size={15} /> },
+          { id: 'lalkitab', label: 'Lal Kitab Remedies', icon: <Scroll size={15} /> },
           { id: 'gemstone', label: 'Gemstone',        icon: <Gem size={15} /> },
           { id: 'nakshatra',label: 'Nakshatra & Yogas',icon: <Star size={15} /> },
           { id: 'transit',  label: 'Transit Report',  icon: <Clock size={15} /> },
@@ -1132,21 +1357,38 @@ export const Home: React.FC = () => {
                   This is your celestial home. Daily transits, lunar phases, and your natal blueprint will appear here.
                 </p>
               </div>
-              <button 
-                onClick={handleResetWizard}
-                className="btn-outline"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 20px',
-                  fontSize: '0.9rem',
-                  borderRadius: '20px',
-                  alignSelf: 'center'
-                }}
-              >
-                <RefreshCw size={14} /> Edit Chart
-              </button>
+              <div style={{ display: 'flex', gap: '12px', alignSelf: 'center' }}>
+                <button 
+                  onClick={handleDownloadPdf}
+                  className="btn-gold"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 20px',
+                    fontSize: '0.9rem',
+                    borderRadius: '20px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Sparkles size={14} /> Download PDF Report
+                </button>
+                <button 
+                  onClick={handleResetWizard}
+                  className="btn-outline"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 20px',
+                    fontSize: '0.9rem',
+                    borderRadius: '20px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <RefreshCw size={14} /> Edit Chart
+                </button>
+              </div>
             </div>
 
             {/* Aetheris Big Three summary grid */}
@@ -1229,8 +1471,43 @@ export const Home: React.FC = () => {
                   </div>
                 </div>
 
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <button
+                    onClick={() => setChartStyle('north')}
+                    style={{
+                      background: chartStyle === 'north' ? 'rgba(212, 175, 55, 0.2)' : 'transparent',
+                      border: `1px solid ${chartStyle === 'north' ? 'var(--color-accent-gold)' : 'var(--color-border-glass)'}`,
+                      color: chartStyle === 'north' ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+                      padding: '8px 16px',
+                      fontSize: '0.85rem',
+                      borderRadius: '20px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    North Indian Chart
+                  </button>
+                  <button
+                    onClick={() => setChartStyle('south')}
+                    style={{
+                      background: chartStyle === 'south' ? 'rgba(212, 175, 55, 0.2)' : 'transparent',
+                      border: `1px solid ${chartStyle === 'south' ? 'var(--color-accent-gold)' : 'var(--color-border-glass)'}`,
+                      color: chartStyle === 'south' ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+                      padding: '8px 16px',
+                      fontSize: '0.85rem',
+                      borderRadius: '20px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    South Indian Chart
+                  </button>
+                </div>
+
                 <div style={{
-                  margin: '40px 0',
+                  margin: '20px 0 40px 0',
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
                   gap: '32px',
@@ -1240,7 +1517,7 @@ export const Home: React.FC = () => {
                     <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
                       Rashi Kundali (D1 Chart)
                     </h3>
-                    <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} />
+                    <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} style={chartStyle} />
                   </div>
 
                   {navamsaResult && activeFeatures.navamsa_chart && (
@@ -1248,7 +1525,7 @@ export const Home: React.FC = () => {
                       <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
                         Navamsa Kundali (D-9 Chart)
                       </h3>
-                      <NavamsaChart navamsaLagna={navamsaResult.navamsaLagna} planets={navamsaResult.planets} />
+                      <NavamsaChart navamsaLagna={navamsaResult.navamsaLagna} planets={navamsaResult.planets} style={chartStyle} />
                     </div>
                   )}
                 </div>
@@ -1279,23 +1556,32 @@ export const Home: React.FC = () => {
                         <th style={{ padding: '12px' }}>Zodiac Sign</th>
                         <th style={{ padding: '12px' }}>Degree</th>
                         <th style={{ padding: '12px' }}>House Placement</th>
+                        <th style={{ padding: '12px' }}>Nakshatra (Star)</th>
+                        <th style={{ padding: '12px' }}>Pada</th>
+                        <th style={{ padding: '12px' }}>Star Lord</th>
                         <th style={{ padding: '12px' }}>Status</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {chartResult.planets.map((planet: any) => (
-                        <tr key={planet.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                          <td style={{ padding: '12px', fontWeight: 500 }}>{planet.name}</td>
-                          <td style={{ padding: '12px' }}>{planet.sign}</td>
-                          <td style={{ padding: '12px' }}>{planet.degree}</td>
-                          <td style={{ padding: '12px' }}>{planet.house} House</td>
-                          <td style={{ padding: '12px' }}>
-                            {planet.retrograde && (
-                              <span style={{ color: '#ff7043', fontWeight: 700, fontSize: '0.85rem' }}>⟲ (R)</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                      {chartResult.planets.map((planet: any) => {
+                        const isRetro = planet.retrograde || planet.name.includes('Rahu') || planet.name.includes('Ketu') || planet.name === 'Ra' || planet.name === 'Ke';
+                        return (
+                          <tr key={planet.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                            <td style={{ padding: '12px', fontWeight: 500 }}>{planet.name}</td>
+                            <td style={{ padding: '12px' }}>{planet.sign}</td>
+                            <td style={{ padding: '12px' }}>{planet.degree}</td>
+                            <td style={{ padding: '12px' }}>{planet.house} House</td>
+                            <td style={{ padding: '12px' }}>{planet.nakshatra || '-'}</td>
+                            <td style={{ padding: '12px' }}>{planet.pada || '-'}</td>
+                            <td style={{ padding: '12px' }}>{planet.lord || '-'}</td>
+                            <td style={{ padding: '12px' }}>
+                              {isRetro && (
+                                <span style={{ color: '#ff7043', fontWeight: 700, fontSize: '0.85rem' }}>⟲ (R)</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

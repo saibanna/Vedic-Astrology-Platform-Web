@@ -91,6 +91,7 @@ export type ChartFormInput = {
   name?: string; dob: string; tob: string; pob?: string;
   lat: number; lon: number; tzone: number;
   mobile?: string; email?: string; concern?: string;
+  gender?: string;
 };
 
 export const astrologyService = {

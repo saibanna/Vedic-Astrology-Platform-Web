@@ -1,12 +1,10 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 // HIDDEN NAV — uncomment when re-enabling menu groups
+// import { Link, useNavigate } from 'react-router-dom';
 // import { useLocation } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { type RootState, logout } from '../store';
-// HIDDEN NAV — uncomment these imports when re-enabling menu groups (see docs/hidden-menu-items.md)
+// import { useSelector, useDispatch } from 'react-redux';
+// import { type RootState, logout } from '../store';
 // import { Compass, Calendar, ShoppingBag, MessageSquare, ShieldAlert, LogOut, LogIn, User, ChevronDown, Sun } from 'lucide-react';
-import { Compass, LogOut, LogIn, User, ShieldAlert } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -80,140 +78,18 @@ const NAV_GROUPS = [
 */
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  // HIDDEN NAV — uncomment when re-enabling menu groups
+  // HIDDEN NAV — uncomment when re-enabling nav bar
+  // const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  // const dispatch = useDispatch();
+  // const navigate = useNavigate();
   // const location = useLocation();
-  // HIDDEN NAV — uncomment when re-enabling menu groups
   // const [openMenu, setOpenMenu] = useState<string | null>(null);
-
-  const handleLogout = () => { dispatch(logout()); navigate('/login'); };
-  // HIDDEN NAV — uncomment when re-enabling menu groups
+  // const handleLogout = () => { dispatch(logout()); navigate('/login'); };
   // const isActive = (path: string) => location.pathname === path;
   // const groupActive = (links: { to: string }[]) => links.some(l => isActive(l.to));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <nav style={{
-        background: 'rgba(5, 6, 15, 0.92)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--color-border-glass)',
-        position: 'sticky', top: 0, zIndex: 100, padding: '14px 0'
-      }}>
-        <div className="layout-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {/* Brand */}
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '38px', height: '38px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, #d4af37 0%, #b38f1d 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 15px rgba(212,175,55,0.4)'
-            }}>
-              <Compass size={22} color="#05060f" />
-            </div>
-            <span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: 'bold', color: '#fff', letterSpacing: '0.1em' }}>VEDAASTRO</span>
-          </Link>
-
-          {/* HIDDEN NAV GROUPS — see docs/hidden-menu-items.md for the full inventory.
-             To re-enable, uncomment the block below and optionally filter NAV_GROUPS. */}
-          {/*
-          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-            {NAV_GROUPS.map(group => (
-              <div key={group.label} style={{ position: 'relative' }}
-                onMouseEnter={() => setOpenMenu(group.label)}
-                onMouseLeave={() => setOpenMenu(null)}
-              >
-                <button style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '5px',
-                  color: groupActive(group.links) ? 'var(--color-accent-gold)' : 'var(--color-text-main)',
-                  fontWeight: 500, fontSize: '0.9rem', padding: '8px 12px', borderRadius: '6px',
-                  transition: 'color 0.2s'
-                }}>
-                  {group.icon} {group.label} <ChevronDown size={13} />
-                </button>
-                {openMenu === group.label && (
-                  <div style={{
-                    position: 'absolute', top: '100%', left: 0, minWidth: '210px',
-                    background: 'rgba(8,9,20,0.97)', border: '1px solid var(--color-border-glass)',
-                    borderRadius: '10px', padding: '6px', zIndex: 200,
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
-                  }}>
-                    {group.links.map(link => (
-                      <Link key={link.to} to={link.to} style={{
-                        display: 'block', padding: '9px 14px', borderRadius: '6px',
-                        color: isActive(link.to) ? 'var(--color-accent-gold)' : 'var(--color-text-main)',
-                        background: isActive(link.to) ? 'rgba(212,175,55,0.08)' : 'transparent',
-                        fontSize: '0.88rem', fontWeight: isActive(link.to) ? 600 : 400,
-                        transition: 'background 0.15s'
-                      }}>
-                        {link.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {isAuthenticated && (
-              <Link to="/consultation/active" style={{
-                color: isActive('/consultation/active') ? 'var(--color-accent-gold)' : 'var(--color-text-main)',
-                display: 'flex', alignItems: 'center', gap: '5px',
-                fontWeight: 500, fontSize: '0.9rem', padding: '8px 12px'
-              }}>
-                <MessageSquare size={16} /> Live Session
-              </Link>
-            )}
-
-            {isAuthenticated && user?.role === 'ADMIN' && (
-              <Link to="/admin" style={{
-                color: isActive('/admin') ? 'var(--color-accent-gold)' : 'var(--color-text-main)',
-                display: 'flex', alignItems: 'center', gap: '5px',
-                fontWeight: 500, fontSize: '0.9rem', padding: '8px 12px'
-              }}>
-                <ShieldAlert size={16} /> Admin
-              </Link>
-            )}
-           {/* Admin Navigation link (visible only when logged in as admin) */}
-          {isAuthenticated && user?.role === 'ADMIN' && (
-            <Link to="/admin" style={{
-              color: window.location.pathname === '/admin' ? 'var(--color-accent-gold)' : 'var(--color-text-main)',
-              display: 'flex', alignItems: 'center', gap: '6px',
-              fontWeight: 600, fontSize: '0.9rem', padding: '8px 14px',
-              borderRadius: '8px',
-              background: window.location.pathname === '/admin' ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
-              border: `1px solid ${window.location.pathname === '/admin' ? 'var(--color-accent-gold)' : 'transparent'}`,
-              transition: 'all 0.2s',
-              marginRight: 'auto',
-              marginLeft: '20px'
-            }}>
-              <ShieldAlert size={16} /> Admin Panel
-            </Link>
-          )}
-
-          {/* Auth */}
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            {isAuthenticated ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(212,175,55,0.15)', border: '1px solid var(--color-border-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <User size={14} color="var(--color-accent-gold)" />
-                  </div>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--color-text-main)' }}>{user?.name || 'User'}</span>
-                </div>
-                <button onClick={handleLogout} className="btn-outline" style={{ padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem' }}>
-                  <LogOut size={13} /> Logout
-                </button>
-              </div>
-            ) : (
-              <Link to="/login" className="btn-gold" style={{ padding: '8px 18px', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem' }}>
-                <LogIn size={13} /> Login
-              </Link>
-            )}
-          </div>
-        </div>
-      </nav>
 
       <main style={{ flex: '1 0 auto', padding: '40px 0' }}>
         <div className="layout-container">{children}</div>

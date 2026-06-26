@@ -12,11 +12,17 @@ interface KundaliChartProps {
   lagna: string;
   planets: Planet[];
   showLegend?: boolean;
+  style?: 'north' | 'south';
 }
 
 const SIGN_MAP: Record<string, number> = {
   Aries: 1, Taurus: 2, Gemini: 3, Cancer: 4, Leo: 5, Virgo: 6,
   Libra: 7, Scorpio: 8, Sagittarius: 9, Capricorn: 10, Aquarius: 11, Pisces: 12
+};
+
+const SIGN_ABBR: Record<number, string> = {
+  1: 'Ar', 2: 'Ta', 3: 'Ge', 4: 'Cn', 5: 'Le', 6: 'Vi',
+  7: 'Li', 8: 'Sc', 9: 'Sg', 10: 'Cp', 11: 'Aq', 12: 'Pi'
 };
 
 const PLANET_ABBR: Record<string, string> = {
@@ -32,8 +38,123 @@ const PLANET_ABBR: Record<string, string> = {
   'Ketu': 'Ke'
 };
 
-export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, showLegend = true }) => {
+const SOUTH_SIGN_COORDS: Record<number, { x: number; y: number }> = {
+  1: { x: 100, y: 0 },
+  2: { x: 200, y: 0 },
+  3: { x: 300, y: 0 },
+  4: { x: 300, y: 100 },
+  5: { x: 300, y: 200 },
+  6: { x: 300, y: 300 },
+  7: { x: 200, y: 300 },
+  8: { x: 100, y: 300 },
+  9: { x: 0, y: 300 },
+  10: { x: 0, y: 200 },
+  11: { x: 0, y: 100 },
+  12: { x: 0, y: 0 }
+};
+
+export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, showLegend = true, style = 'north' }) => {
   const lagnaSignNum = SIGN_MAP[lagna] || 1;
+
+  if (style === 'south') {
+    // Group planets by sign
+    const planetsBySign: Record<number, Planet[]> = {};
+    for (let i = 1; i <= 12; i++) {
+      planetsBySign[i] = [];
+    }
+    planets.forEach(p => {
+      const signNum = SIGN_MAP[p.sign];
+      if (signNum) {
+        planetsBySign[signNum].push(p);
+      }
+    });
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', margin: '10px 0' }}>
+        <div style={{
+          background: 'radial-gradient(circle at center, #0c0f24, #05060f)',
+          border: '3px solid var(--color-border-gold)',
+          borderRadius: '16px',
+          padding: '16px',
+          boxShadow: '0 8px 32px rgba(212, 175, 55, 0.15)',
+          width: '100%',
+          maxWidth: '432px'
+        }}>
+          <svg viewBox="0 0 400 400" width="100%" height="100%" style={{ overflow: 'visible' }}>
+            {/* Outer border */}
+            <rect x="0" y="0" width="400" height="400" fill="none" stroke="var(--color-border-gold)" strokeWidth="2.5" />
+            
+            {/* Center Area */}
+            <rect x="100" y="100" width="200" height="200" fill="rgba(212, 175, 55, 0.03)" stroke="var(--color-border-gold)" strokeWidth="1.5" />
+            <text x="200" y="200" fill="var(--color-accent-gold)" fontSize="16" fontWeight="bold" textAnchor="middle" dominantBaseline="middle">
+              RASHI D-1
+            </text>
+
+            {/* Render the 12 cells */}
+            {Array.from({ length: 12 }, (_, index) => {
+              const signNum = index + 1;
+              const { x, y } = SOUTH_SIGN_COORDS[signNum];
+              const isLagna = signNum === lagnaSignNum;
+              const cellPlanets = planetsBySign[signNum];
+
+              return (
+                <g key={signNum}>
+                  {/* Cell border */}
+                  <rect x={x} y={y} width="100" height="100" fill="none" stroke="var(--color-border-glass)" strokeWidth="1.5" />
+                  
+                  {/* Sign label */}
+                  <text x={x + 8} y={y + 16} fill="var(--color-text-muted)" fontSize="10" fontWeight="bold">
+                    {SIGN_ABBR[signNum]}
+                  </text>
+
+                  {/* Lagna line & text */}
+                  {isLagna && (
+                    <>
+                      <line x1={x + 100} y1={y} x2={x} y2={y + 100} stroke="rgba(212, 175, 55, 0.35)" strokeWidth="1.5" />
+                      <text x={x + 8} y={y + 90} fill="var(--color-accent-gold)" fontSize="10" fontWeight="bold">
+                        ASC
+                      </text>
+                    </>
+                  )}
+
+                  {/* Planets list */}
+                  {cellPlanets.map((p, idx) => {
+                    const abbr = PLANET_ABBR[p.name] || p.name;
+                    const isRetro = p.retrograde || p.name.includes('Rahu') || p.name.includes('Ketu') || p.name === 'Ra' || p.name === 'Ke';
+                    const text = abbr + (isRetro ? '(R)' : '');
+                    return (
+                      <text
+                        key={idx}
+                        x={x + 50}
+                        y={y + 35 + idx * 15}
+                        fill="#ffffff"
+                        fontSize="11"
+                        fontWeight="600"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{ filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.8))' }}
+                      >
+                        {text}
+                      </text>
+                    );
+                  })}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+        {showLegend && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+            {Object.entries(PLANET_ABBR).map(([fullName, abbr]) => (
+              <span key={abbr} style={{ background: 'rgba(255,255,255,0.03)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--color-border-glass)' }}>
+                <strong>{abbr}</strong>: {fullName.replace(' (Lagna)', '').replace(' (Chandra)', '').replace(' (Surya)', '').replace(' (Mangal)', '').replace(' (Budh)', '').replace(' (Guru)', '').replace(' (Shukra)', '').replace(' (Shani)', '')}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // Calculate the sign number for each of the 12 houses (1-indexed house positions)
   // House 1 gets lagnaSignNum, House 2 gets lagnaSignNum + 1, etc.
@@ -125,7 +246,11 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, show
                     dominantBaseline="middle"
                     style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.8))' }}
                   >
-                    {housePlanets.map(p => (PLANET_ABBR[p.name] || p.name) + (p.retrograde ? '(R)' : '')).join(', ')}
+                    {housePlanets.map(p => {
+                      const abbr = PLANET_ABBR[p.name] || p.name;
+                      const isRetro = p.retrograde || p.name.includes('Rahu') || p.name.includes('Ketu') || p.name === 'Ra' || p.name === 'Ke';
+                      return abbr + (isRetro ? '(R)' : '');
+                    }).join(', ')}
                   </text>
                 )}
               </g>
