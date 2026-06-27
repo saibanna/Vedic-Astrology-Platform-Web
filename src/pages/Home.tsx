@@ -499,6 +499,47 @@ export const Home: React.FC = () => {
       {/* STEP 2: SINGLE SCREEN COORDINATES FORM */}
       {wizardStep === 'birthForm' && (
         <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', animation: 'fadeIn 0.5s ease-out' }}>
+          {/* Top Header Row with Brand & Login */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #d4af37 0%, #b38f1d 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 15px rgba(212,175,55,0.4)'
+              }}>
+                <Compass size={22} color="#05060f" />
+              </div>
+              <span style={{
+                fontSize: '1.4rem',
+                fontFamily: 'var(--font-heading)',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                letterSpacing: '0.1em'
+              }}>
+                VEDAASTRO
+              </span>
+            </div>
+            <a
+              href="/login"
+              className="btn-gold"
+              style={{
+                padding: '8px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.82rem',
+                borderRadius: '20px',
+                textDecoration: 'none'
+              }}
+            >
+              Login
+            </a>
+          </div>
           
           <div style={{
             display: 'grid',
@@ -509,47 +550,6 @@ export const Home: React.FC = () => {
           }}>
             {/* Left Column - Info Panel */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', textAlign: 'left' }}>
-              {/* Brand Logo Header + Login */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #d4af37 0%, #b38f1d 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 0 15px rgba(212,175,55,0.4)'
-                  }}>
-                    <Compass size={22} color="#05060f" />
-                  </div>
-                  <span style={{
-                    fontSize: '1.4rem',
-                    fontFamily: 'var(--font-heading)',
-                    color: '#ffffff',
-                    fontWeight: 'bold',
-                    letterSpacing: '0.1em'
-                  }}>
-                    VEDAASTRO
-                  </span>
-                </div>
-                <a
-                  href="/login"
-                  className="btn-gold"
-                  style={{
-                    padding: '8px 20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '0.82rem',
-                    borderRadius: '20px',
-                    textDecoration: 'none'
-                  }}
-                >
-                  Login
-                </a>
-              </div>
 
               {/* Tagline Badge */}
               <div style={{
@@ -858,98 +858,98 @@ export const Home: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Mobile Number */}
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>MOBILE NUMBER *</label>
-                  <input 
-                    type="tel" 
-                    name="mobile" 
-                    placeholder="e.g. +91 98765 43210" 
-                    value={formData.mobile} 
-                    onChange={handleInputChange} 
-                    className="form-input" 
-                    required 
-                  />
+                {/* Mobile Number & Email Address Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '16px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>MOBILE NUMBER *</label>
+                    <input 
+                      type="tel" 
+                      name="mobile" 
+                      placeholder="e.g. +91 98765 43210" 
+                      value={formData.mobile} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>EMAIL ADDRESS *</label>
+                    <input 
+                      type="email" 
+                      name="email" 
+                      placeholder="celestial@archive.com" 
+                      value={formData.email} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required
+                    />
+                  </div>
                 </div>
 
-                {/* Email Address */}
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>EMAIL ADDRESS *</label>
-                  <input 
-                    type="email" 
-                    name="email" 
-                    placeholder="celestial@archive.com" 
-                    value={formData.email} 
-                    onChange={handleInputChange} 
-                    className="form-input" 
-                    required
-                  />
-                </div>
-
-                {/* Concern Selector */}
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>PRIMARY LIFE FOCUS (TAILORS REMEDIES)</label>
-                  <select
-                    name="selectedConcern"
-                    value={selectedConcern || 'general'}
-                    onChange={(e) => setSelectedConcern(e.target.value as any)}
-                    className="form-input"
-                    style={{ background: 'rgba(5, 6, 15, 0.85)', cursor: 'pointer' }}
-                  >
-                    <option value="general">General Horoscope Reading</option>
-                    <option value="career">Career & Professional Growth</option>
-                    <option value="marriage">Marriage & Relationships</option>
-                    <option value="finance">Wealth, Finance & Prosperity</option>
-                    <option value="health">Health, Vitality & Sade Sati</option>
-                    <option value="spirituality">Spirituality & Soul Purpose</option>
-                  </select>
-                </div>
-
-                {/* Chart Style Selector */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
-                  <label style={{ ...labelStyle }}>CHART STYLE</label>
-                  <div style={{ display: 'flex', gap: '0', borderRadius: '25px', overflow: 'hidden', border: '1px solid var(--color-border-gold)' }}>
-                    <button
-                      type="button"
-                      onClick={() => setChartStyle('north')}
-                      style={{
-                        flex: 1,
-                        padding: '10px 16px',
-                        background: chartStyle === 'north'
-                          ? 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.15))'
-                          : 'rgba(5, 6, 15, 0.6)',
-                        border: 'none',
-                        color: chartStyle === 'north' ? '#fff' : 'var(--color-text-muted)',
-                        fontWeight: chartStyle === 'north' ? 700 : 500,
-                        fontSize: '0.82rem',
-                        letterSpacing: '0.05em',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        borderRight: '1px solid var(--color-border-gold)'
-                      }}
+                {/* Focus Concern & Chart Style Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>PRIMARY LIFE FOCUS</label>
+                    <select
+                      name="selectedConcern"
+                      value={selectedConcern || 'general'}
+                      onChange={(e) => setSelectedConcern(e.target.value as any)}
+                      className="form-input"
+                      style={{ background: 'rgba(5, 6, 15, 0.85)', cursor: 'pointer' }}
                     >
-                      ◇ NORTH
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setChartStyle('south')}
-                      style={{
-                        flex: 1,
-                        padding: '10px 16px',
-                        background: chartStyle === 'south'
-                          ? 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.15))'
-                          : 'rgba(5, 6, 15, 0.6)',
-                        border: 'none',
-                        color: chartStyle === 'south' ? '#fff' : 'var(--color-text-muted)',
-                        fontWeight: chartStyle === 'south' ? 700 : 500,
-                        fontSize: '0.82rem',
-                        letterSpacing: '0.05em',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      ▦ SOUTH
-                    </button>
+                      <option value="general">General Reading</option>
+                      <option value="career">Career & Growth</option>
+                      <option value="marriage">Marriage & Relations</option>
+                      <option value="finance">Wealth & Finance</option>
+                      <option value="health">Health & Vitality</option>
+                      <option value="spirituality">Spirituality & Soul</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>CHART STYLE</label>
+                    <div style={{ display: 'flex', gap: '0', borderRadius: '25px', overflow: 'hidden', border: '1px solid var(--color-border-gold)', height: '42px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setChartStyle('north')}
+                        style={{
+                          flex: 1,
+                          padding: '0 8px',
+                          background: chartStyle === 'north'
+                            ? 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.15))'
+                            : 'rgba(5, 6, 15, 0.6)',
+                          border: 'none',
+                          color: chartStyle === 'north' ? '#fff' : 'var(--color-text-muted)',
+                          fontWeight: chartStyle === 'north' ? 700 : 500,
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          borderRight: '1px solid var(--color-border-gold)'
+                        }}
+                      >
+                        ◇ NORTH
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setChartStyle('south')}
+                        style={{
+                          flex: 1,
+                          padding: '0 8px',
+                          background: chartStyle === 'south'
+                            ? 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.15))'
+                            : 'rgba(5, 6, 15, 0.6)',
+                          border: 'none',
+                          color: chartStyle === 'south' ? '#fff' : 'var(--color-text-muted)',
+                          fontWeight: chartStyle === 'south' ? 700 : 500,
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        ▦ SOUTH
+                      </button>
+                    </div>
                   </div>
                 </div>
 
