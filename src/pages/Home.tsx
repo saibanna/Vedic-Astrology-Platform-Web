@@ -5,6 +5,7 @@ import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
 import { HousePredictions } from '../components/HousePredictions';
+import { StandardHouseTable } from '../components/StandardHouseTable';
 
 const ZODIAC_SIGNS = [
   { name: 'Aries', date: 'Mar 21 - Apr 19', symbol: '♈' },
@@ -904,6 +905,54 @@ export const Home: React.FC = () => {
                   </select>
                 </div>
 
+                {/* Chart Style Selector */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                  <label style={{ ...labelStyle }}>CHART STYLE</label>
+                  <div style={{ display: 'flex', gap: '0', borderRadius: '25px', overflow: 'hidden', border: '1px solid var(--color-border-gold)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setChartStyle('north')}
+                      style={{
+                        flex: 1,
+                        padding: '10px 16px',
+                        background: chartStyle === 'north'
+                          ? 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.15))'
+                          : 'rgba(5, 6, 15, 0.6)',
+                        border: 'none',
+                        color: chartStyle === 'north' ? '#fff' : 'var(--color-text-muted)',
+                        fontWeight: chartStyle === 'north' ? 700 : 500,
+                        fontSize: '0.82rem',
+                        letterSpacing: '0.05em',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        borderRight: '1px solid var(--color-border-gold)'
+                      }}
+                    >
+                      ◇ NORTH
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartStyle('south')}
+                      style={{
+                        flex: 1,
+                        padding: '10px 16px',
+                        background: chartStyle === 'south'
+                          ? 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.15))'
+                          : 'rgba(5, 6, 15, 0.6)',
+                        border: 'none',
+                        color: chartStyle === 'south' ? '#fff' : 'var(--color-text-muted)',
+                        fontWeight: chartStyle === 'south' ? 700 : 500,
+                        fontSize: '0.82rem',
+                        letterSpacing: '0.05em',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      ▦ SOUTH
+                    </button>
+                  </div>
+                </div>
+
                 {/* Manual Coordinates Overrides */}
                 <details style={{ width: '100%', color: 'var(--color-text-muted)', fontSize: '0.82rem', marginTop: '4px' }}>
                   <summary style={{ cursor: 'pointer', userSelect: 'none', color: 'var(--color-accent-gold-light)', fontWeight: 700 }}>
@@ -1584,6 +1633,10 @@ export const Home: React.FC = () => {
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                <div style={{ marginTop: '40px' }}>
+                  <StandardHouseTable planets={chartResult.planets} lagna={chartResult.lagna} />
                 </div>
 
                 <div style={{ marginTop: '40px' }}>
