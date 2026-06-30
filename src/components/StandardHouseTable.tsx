@@ -72,8 +72,6 @@ function signForHouse(lagna: string, house: number): string {
 function groupPlanetsByHouse(planets: Planet[]): Record<number, Planet[]> {
   const map: Record<number, Planet[]> = {};
   for (const p of planets) {
-    // Skip the Ascendant — only actual planets should appear
-    if (p.name === 'Ascendant (Lagna)') continue;
     if (!map[p.house]) map[p.house] = [];
     map[p.house].push(p);
   }
@@ -173,11 +171,11 @@ export const StandardHouseTable: React.FC<StandardHouseTableProps> = ({
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={styles.th}>House</th>
+              <th style={styles.th}>LKNo</th>
               <th style={styles.th}>House Name (Rāśi)</th>
               <th style={styles.th}>House Lord</th>
-              <th style={styles.th}>Native Planets</th>
-              <th style={styles.th}>Native House #</th>
+              <th style={styles.th}>Planet</th>
+              <th style={styles.th}>CHNo</th>
             </tr>
           </thead>
           <tbody>

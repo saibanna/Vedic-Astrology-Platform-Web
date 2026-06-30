@@ -50,6 +50,7 @@ export const Home: React.FC = () => {
   const [chartResult, setChartResult] = useState<any | null>(null);
   const [navamsaResult, setNavamsaResult] = useState<any | null>(null);
   const [dashaResult, setDashaResult] = useState<any | null>(null);
+  const [allVargas, setAllVargas] = useState<any | null>(null);
   const [selectedZodiac, setSelectedZodiac] = useState<string | null>(null);
   const [horoscope, setHoroscope] = useState<string | null>(null);
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
@@ -292,12 +293,14 @@ export const Home: React.FC = () => {
         email: formData.email,
         concern: selectedConcern || 'general',
         gender: formData.gender,
+        style: chartStyle,
       });
       const finalData = res.data?.data ?? res.data;
       if (!finalData?.lagna) throw new Error('Invalid chart data received from server.');
       setChartResult(finalData);
       setNavamsaResult(finalData.navamsaChart ?? null);
       setDashaResult(finalData.dashaPeriods ?? null);
+      setAllVargas(finalData.allVargas ?? null);
       const input = {
         year: parseInt(formData.dob.split('-')[0]), month: parseInt(formData.dob.split('-')[1]),
         day: parseInt(formData.dob.split('-')[2]),
@@ -1558,24 +1561,60 @@ export const Home: React.FC = () => {
                 <div style={{
                   margin: '20px 0 40px 0',
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                  gap: '32px',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '24px',
                   alignItems: 'start'
                 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
-                      Rashi Kundali (D1 Chart)
-                    </h3>
-                    <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} style={chartStyle} />
-                  </div>
+                  {allVargas ? (
+                    ["D1", "D9", "D30", "D3", "D10", "D60", "D7", "D12", "D20", "D24", "D16", "D2"]
+                      .filter(key => allVargas[key])
+                      .map(key => {
+                        const v = allVargas[key];
+                        let title = v.name;
+                        if (key === 'D2') title = 'Hora D-2 (US)';
+                        else if (key === 'D3') title = 'Drekkana D-3 (Trd)';
+                        else if (key === 'D10') title = 'Dashamsha D-10 (Trd)';
+                        else if (key === 'D60') title = 'Shastiamsha D-60 (Trd)';
+                        else if (key === 'D7') title = 'Saptamsha D-7 (Trd)';
+                        else if (key === 'D12') title = 'Dwadasamsha D-12 (Trd)';
+                        else if (key === 'D20') title = 'Vimsamsha D-20 (Trd)';
+                        else if (key === 'D24') title = 'Chaturvimshamsha D-24 (Trd)';
+                        else if (key === 'D16') title = 'Shodashamsha D-16 (Trd)';
+                        else if (key === 'D30') title = 'Trimshamsha D-30 (Trd)';
 
-                  {navamsaResult && activeFeatures.navamsa_chart && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
-                        Navamsa Kundali (D-9 Chart)
-                      </h3>
-                      <NavamsaChart navamsaLagna={navamsaResult.navamsaLagna} planets={navamsaResult.planets} style={chartStyle} />
-                    </div>
+                        return (
+                          <div key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                            <h3 style={{ fontSize: '1.15rem', marginBottom: '12px', color: 'var(--color-accent-gold)', textAlign: 'center', fontWeight: 600 }}>
+                              {title}
+                            </h3>
+                            <KundaliChart 
+                              lagna={v.lagna} 
+                              planets={v.planets} 
+                              style={chartStyle} 
+                              showLegend={false} 
+                              title={key} 
+                            />
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
+                          Rashi Kundali (D1 Chart)
+                        </h3>
+                        <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} style={chartStyle} />
+                      </div>
+
+                      {navamsaResult && activeFeatures.navamsa_chart && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
+                            Navamsa Kundali (D-9 Chart)
+                          </h3>
+                          <NavamsaChart navamsaLagna={navamsaResult.navamsaLagna} planets={navamsaResult.planets} style={chartStyle} />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 

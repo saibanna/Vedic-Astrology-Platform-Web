@@ -68,20 +68,7 @@ const HOUSE_DETAILS: Record<number, { name: string; meaning: string }> = {
   12: { name: '12th House', meaning: 'Losses, Moksha' }
 };
 
-const SOUTH_SIGN_MEANINGS: Record<number, string> = {
-  1: 'Self, Personality',
-  2: 'Wealth, Family',
-  3: 'Courage, Siblings',
-  4: 'Home, Mother',
-  5: 'Children, Mind',
-  6: 'Health, Enemies',
-  7: 'Marriage, Partner',
-  8: 'Longevity, Occult',
-  9: 'Fortune, Dharma',
-  10: 'Career, Status',
-  11: 'Gains, Profits',
-  12: 'Losses, Expenses'
-};
+
 
 export const NavamsaChart: React.FC<NavamsaChartProps> = ({ navamsaLagna, planets, showLegend = true, style = 'north' }) => {
   const lagnaSignNum = SIGN_MAP[navamsaLagna] || 1;
@@ -177,10 +164,6 @@ export const NavamsaChart: React.FC<NavamsaChartProps> = ({ navamsaLagna, planet
                     </>
                   )}
 
-                  {/* House Meaning at bottom of cell */}
-                  <text x={x + 50} y={y + 88} fill="var(--color-text-muted)" fontSize="7" textAnchor="middle">
-                    {SOUTH_SIGN_MEANINGS[signNum]}
-                  </text>
 
                   {/* Planets list */}
                   {cellPlanets.map((p, idx) => {
@@ -326,18 +309,6 @@ export const NavamsaChart: React.FC<NavamsaChartProps> = ({ navamsaLagna, planet
                   {details.name}
                 </text>
 
-                {/* House Meaning */}
-                <text 
-                  x={cfg.meaningX} 
-                  y={cfg.meaningY} 
-                  fill="var(--color-text-muted)" 
-                  fontSize="7" 
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  style={{ opacity: 0.8 }}
-                >
-                  {details.meaning}
-                </text>
 
                 {/* Planets text list inside the house */}
                 {housePlanets.length > 0 && (

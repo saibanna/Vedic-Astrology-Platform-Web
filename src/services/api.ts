@@ -85,6 +85,7 @@ export type AstrologyCalcInput = {
   year: number; month: number; day: number;
   hour: number; minute: number;
   lat: number; lon: number; tzone: number;
+  style?: string;
 };
 
 export type ChartFormInput = {
@@ -92,6 +93,7 @@ export type ChartFormInput = {
   lat: number; lon: number; tzone: number;
   mobile?: string; email?: string; concern?: string;
   gender?: string;
+  style?: string;
 };
 
 export const astrologyService = {
