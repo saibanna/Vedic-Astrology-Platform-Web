@@ -90,24 +90,24 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, show
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', margin: '10px 0' }}>
         <div style={{
-          background: 'radial-gradient(circle at center, #0c0f24, #05060f)',
-          border: '3px solid var(--color-border-gold)',
+          background: '#fdfbf7',
+          border: '3px solid #b8932b',
           borderRadius: '16px',
           padding: '16px',
-          boxShadow: '0 8px 32px rgba(212, 175, 55, 0.15)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
           width: '100%',
           maxWidth: '432px'
         }}>
           <svg viewBox="0 0 400 400" width="100%" height="100%" style={{ overflow: 'visible' }}>
             {/* Outer border */}
-            <rect x="0" y="0" width="400" height="400" fill="none" stroke="var(--color-border-gold)" strokeWidth="2.5" />
+            <rect x="0" y="0" width="400" height="400" fill="none" stroke="#b8932b" strokeWidth="2.5" />
             
             {/* Center Area */}
-            <rect x="100" y="100" width="200" height="200" fill="rgba(212, 175, 55, 0.03)" stroke="var(--color-border-gold)" strokeWidth="1.5" />
-            <text x="200" y="185" fill="var(--color-accent-gold)" fontSize="16" fontWeight="bold" textAnchor="middle" dominantBaseline="middle">
+            <rect x="100" y="100" width="200" height="200" fill="rgba(212, 175, 55, 0.06)" stroke="#b8932b" strokeWidth="1.5" />
+            <text x="200" y="185" fill="#8a6d1c" fontSize="16" fontWeight="bold" textAnchor="middle" dominantBaseline="middle">
               {title}
             </text>
-            <text x="200" y="210" fill="var(--color-text-muted)" fontSize="9.5" textAnchor="middle" dominantBaseline="middle">
+            <text x="200" y="210" fill="#6b7280" fontSize="9.5" textAnchor="middle" dominantBaseline="middle">
               Signs Fixed | Houses Change
             </text>
 
@@ -125,24 +125,24 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, show
               return (
                 <g key={signNum}>
                   {/* Cell border */}
-                  <rect x={x} y={y} width="100" height="100" fill="none" stroke="var(--color-border-glass)" strokeWidth="1.5" />
+                  <rect x={x} y={y} width="100" height="100" fill="none" stroke="rgba(184, 147, 43, 0.2)" strokeWidth="1.5" />
                   
                   {/* Sign label & Sanskrit Name */}
-                  <text x={x + 6} y={y + 15} fill="var(--color-accent-gold)" fontSize="9" fontWeight="bold" textAnchor="start">
+                  <text x={x + 6} y={y + 15} fill="#8a6d1c" fontSize="9" fontWeight="bold" textAnchor="start">
                     {signNum}. {SIGN_ABBR[signNum]}
                   </text>
 
                   {/* House Label relative to Ascendant */}
-                  <text x={x + 94} y={y + 15} fill="#ffffff" fontSize="8" fontWeight="600" textAnchor="end" style={{ opacity: 0.85 }}>
+                  <text x={x + 94} y={y + 15} fill="#4b5563" fontSize="8" fontWeight="600" textAnchor="end" style={{ opacity: 0.85 }}>
                     {isLagna ? 'Lagna' : `${houseNum}${houseSuffix}`}
                   </text>
 
                   {/* Lagna line & text */}
                   {isLagna && (
                     <>
-                      <line x1={x + 100} y1={y} x2={x} y2={y + 100} stroke="rgba(212, 175, 55, 0.25)" strokeWidth="1" />
-                      <rect x={x + 35} y={y + 2} width="30" height="14" rx="3" fill="rgba(212,175,55,0.2)" stroke="var(--color-accent-gold)" strokeWidth="0.5" />
-                      <text x={x + 50} y={y + 9} fill="var(--color-accent-gold)" fontSize="8.5" fontWeight="bold" textAnchor="middle" dominantBaseline="middle">
+                      <line x1={x + 100} y1={y} x2={x} y2={y + 100} stroke="rgba(184, 147, 43, 0.35)" strokeWidth="1" />
+                      <rect x={x + 35} y={y + 2} width="30" height="14" rx="3" fill="rgba(184, 147, 43, 0.12)" stroke="#8a6d1c" strokeWidth="0.5" />
+                      <text x={x + 50} y={y + 9} fill="#8a6d1c" fontSize="8.5" fontWeight="bold" textAnchor="middle" dominantBaseline="middle">
                         ASC
                       </text>
                     </>
@@ -159,12 +159,10 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, show
                         key={idx}
                         x={x + 50}
                         y={y + 38 + idx * 14}
-                        fill="#ffffff"
+                        fill="#1f2937"
                         fontSize="11.5"
-                        fontWeight="700"
+                        fontWeight="bold"
                         textAnchor="middle"
-                        dominantBaseline="middle"
-                        style={{ filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.8))' }}
                       >
                         {text}
                       </text>
@@ -231,24 +229,24 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, show
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', margin: '10px 0' }}>
       <div style={{
-        background: 'radial-gradient(circle at center, #0c0f24, #05060f)',
-        border: '3px solid var(--color-border-gold)',
+        background: '#fdfbf7',
+        border: '3px solid #b8932b',
         borderRadius: '16px',
         padding: '16px',
-        boxShadow: '0 8px 32px rgba(212, 175, 55, 0.15)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
         width: '100%',
         maxWidth: '432px'
       }}>
         <svg viewBox="0 0 400 400" width="100%" height="100%" style={{ overflow: 'visible' }}>
           {/* Background Grid Lines */}
-          <rect x="0" y="0" width="400" height="400" fill="none" stroke="var(--color-border-gold)" strokeWidth="2.5" />
+          <rect x="0" y="0" width="400" height="400" fill="none" stroke="#b8932b" strokeWidth="2.5" />
           
           {/* Diagonals */}
-          <line x1="0" y1="0" x2="400" y2="400" stroke="var(--color-border-glass)" strokeWidth="1.5" />
-          <line x1="400" y1="0" x2="0" y2="400" stroke="var(--color-border-glass)" strokeWidth="1.5" />
+          <line x1="0" y1="0" x2="400" y2="400" stroke="rgba(184, 147, 43, 0.25)" strokeWidth="1.5" />
+          <line x1="400" y1="0" x2="0" y2="400" stroke="rgba(184, 147, 43, 0.25)" strokeWidth="1.5" />
           
           {/* Inner Diamond */}
-          <polygon points="200,0 400,200 200,400 0,200" fill="none" stroke="var(--color-border-gold)" strokeWidth="2" />
+          <polygon points="200,0 400,200 200,400 0,200" fill="none" stroke="#b8932b" strokeWidth="2" />
           
           {/* Loop through all 12 houses to plot sign numbers, labels, meanings, and planets */}
           {Object.entries(houseConfig).map(([houseStr, cfg]) => {
@@ -263,7 +261,7 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, show
                 <text 
                   x={cfg.signX} 
                   y={cfg.signY} 
-                  fill="var(--color-accent-gold)" 
+                  fill="#8a6d1c" 
                   fontSize="14" 
                   fontWeight="bold"
                   textAnchor="middle"
@@ -276,7 +274,7 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, show
                 <text 
                   x={cfg.labelX} 
                   y={cfg.labelY} 
-                  fill="#ffffff" 
+                  fill="#4b5563" 
                   fontSize="8.5" 
                   fontWeight="700"
                   textAnchor="middle"
@@ -292,12 +290,11 @@ export const KundaliChart: React.FC<KundaliChartProps> = ({ lagna, planets, show
                   <text 
                     x={cfg.planetX} 
                     y={cfg.planetY} 
-                    fill="#ffffff" 
+                    fill="#1f2937" 
                     fontSize="12.5" 
                     fontWeight="700"
                     textAnchor={cfg.align}
                     dominantBaseline="middle"
-                    style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.8))' }}
                   >
                     {housePlanets.map(p => {
                       const abbr = PLANET_ABBR[p.name] || p.name;
