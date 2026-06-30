@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { astrologyService, calculatorService, masterDataService } from '../services/api';
-import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll, Flame, RefreshCw, Calendar } from 'lucide-react';
+import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll, Flame, RefreshCw, Calendar, Heart, Hourglass, ChevronRight } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
 import { HousePredictions } from '../components/HousePredictions';
 import { StandardHouseTable } from '../components/StandardHouseTable';
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--color-border-glass)',
+  borderRadius: '8px', padding: '10px 14px', color: '#fff', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box',
+};
 
 const ZODIAC_SIGNS = [
   { name: 'Aries', date: 'Mar 21 - Apr 19', symbol: '♈' },
@@ -51,9 +56,17 @@ export const Home: React.FC = () => {
   const [navamsaResult, setNavamsaResult] = useState<any | null>(null);
   const [dashaResult, setDashaResult] = useState<any | null>(null);
   const [allVargas, setAllVargas] = useState<any | null>(null);
+  const [stelliumSvg, setStelliumSvg] = useState<string | null>(null);
   const [selectedZodiac, setSelectedZodiac] = useState<string | null>(null);
   const [horoscope, setHoroscope] = useState<string | null>(null);
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
+
+  // Stellium tab interactive states
+  const [progressionAge, setProgressionAge] = useState<number>(30);
+  const [releasingLot, setReleasingLot] = useState<string>('Part of Fortune');
+  const [partnerForm, setPartnerForm] = useState({ name: '', dob: '', tob: '12:00', pob: '', lat: '', lon: '', tzone: '' });
+  const [partnerSuggestions, setPartnerSuggestions] = useState<any[]>([]);
+  const [partnerGeoLoading, setPartnerGeoLoading] = useState(false);
 
   // Feature flags
   const [activeFeatures, setActiveFeatures] = useState<Record<string, boolean>>({
@@ -69,6 +82,68 @@ export const Home: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const skipPartnerSearchRef = useRef(false);
+
+  const tzFromLon = (lon: number): number => Math.round(lon / 15 * 2) / 2;
+
+  const normalizePlace = (place: any) => {
+    if (place.latitude !== undefined && place.longitude !== undefined) {
+      const lat = parseFloat(place.latitude).toFixed(4);
+      const lon = parseFloat(place.longitude).toFixed(4);
+      const countryCode = (place.country_code || '').toLowerCase();
+      const isIndia = countryCode === 'in' || (place.country || '').toLowerCase().includes('india');
+      const primary = place.name || '';
+      const state = place.admin1 || '';
+      const country = place.country || '';
+      return { lat, lon, isIndia, primary, state, country };
+    }
+    
+    const lat = parseFloat(place.lat || '0').toFixed(4);
+    const lon = parseFloat(place.lon || '0').toFixed(4);
+    const address = place.address || {};
+    const countryCode = (address.country_code || '').toLowerCase();
+    const isIndia = countryCode === 'in' || place.display_name?.toLowerCase().includes('india');
+    const primary = place.name || place.display_name?.split(',')[0].trim() || '';
+    const state = address.state || address.region || address.province || '';
+    const country = address.country || '';
+    return { lat, lon, isIndia, primary, state, country };
+  };
+
+  useEffect(() => {
+    if (skipPartnerSearchRef.current) {
+      skipPartnerSearchRef.current = false;
+      return;
+    }
+    if (partnerForm.pob.trim().length < 3) {
+      setPartnerSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setPartnerGeoLoading(true);
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(partnerForm.pob)}&count=5&language=en&format=json`);
+        const data = await res.json();
+        if (data?.results?.length) {
+          setPartnerSuggestions(data.results);
+          return;
+        }
+        
+        const resNom = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(partnerForm.pob)}&format=json&limit=5&addressdetails=1`, { headers: { 'Accept-Language': 'en' } });
+        const dataNom = await resNom.json();
+        if (dataNom?.length) {
+          setPartnerSuggestions(dataNom);
+        } else {
+          setPartnerSuggestions([]);
+        }
+      } catch {
+        setPartnerSuggestions([]);
+      } finally {
+        setPartnerGeoLoading(false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [partnerForm.pob]);
 
   useEffect(() => {
     const loadActiveFeatures = async () => {
@@ -152,6 +227,20 @@ export const Home: React.FC = () => {
         res = (await calculatorService.rudraksha(input)).data;
       } else if (tab === 'lalkitab') {
         res = (await calculatorService.lalkitab(input)).data;
+      } else if (tab === 'dignities') {
+        res = (await calculatorService.dignities(input)).data;
+      } else if (tab === 'patterns') {
+        res = (await calculatorService.aspectPatterns(input)).data;
+      } else if (tab === 'stars') {
+        res = (await calculatorService.fixedStars(input)).data;
+      } else if (tab === 'arabic') {
+        res = (await calculatorService.arabicParts(input)).data;
+      } else if (tab === 'releasing') {
+        res = (await calculatorService.zodiacalReleasing({ ...input, lot: 'Part of Fortune', max_level: 2 })).data;
+      } else if (tab === 'hours') {
+        res = (await calculatorService.planetaryHours(input)).data;
+      } else if (tab === 'progressions') {
+        res = (await calculatorService.progressions({ ...input, age: 30 })).data;
       }
       setCalcData(d => ({ ...d, [tab]: res }));
     } catch { /* silent — tab shows error state */ }
@@ -163,6 +252,52 @@ export const Home: React.FC = () => {
   const switchTab = (tab: string, input: any) => {
     setActiveTab(tab);
     if (tab !== 'chart') loadCalc(tab, input);
+  };
+
+  const handleReleasingLotChange = async (lot: string) => {
+    setReleasingLot(lot);
+    setCalcLoading(l => ({ ...l, releasing: true }));
+    try {
+      const res = await calculatorService.zodiacalReleasing({ ...calcInput, lot, max_level: 2 });
+      setCalcData(d => ({ ...d, releasing: res.data }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCalcLoading(l => ({ ...l, releasing: false }));
+    }
+  };
+
+  const handleProgressionAgeChange = async (age: number) => {
+    setProgressionAge(age);
+    setCalcLoading(l => ({ ...l, progressions: true }));
+    try {
+      const res = await calculatorService.progressions({ ...calcInput, age });
+      setCalcData(d => ({ ...d, progressions: res.data }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCalcLoading(l => ({ ...l, progressions: false }));
+    }
+  };
+
+  const handlePartnerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCalcLoading(l => ({ ...l, synastry: true }));
+    try {
+      const [pYear, pMonth, pDay] = partnerForm.dob.split('-').map(Number);
+      const [pHour, pMinute] = partnerForm.tob.split(':').map(Number);
+      const partnerPayload = {
+        year: pYear, month: pMonth, day: pDay, hour: pHour || 12, minute: pMinute || 0,
+        lat: parseFloat(partnerForm.lat), lon: parseFloat(partnerForm.lon), tzone: parseFloat(partnerForm.tzone),
+        name: partnerForm.name || 'Partner'
+      };
+      const res = await calculatorService.synastry(calcInput, partnerPayload);
+      setCalcData(d => ({ ...d, synastry: res.data }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCalcLoading(l => ({ ...l, synastry: false }));
+    }
   };
 
   const [geoSuggestions, setGeoSuggestions] = useState<any[]>([]);
@@ -301,6 +436,7 @@ export const Home: React.FC = () => {
       setNavamsaResult(finalData.navamsaChart ?? null);
       setDashaResult(finalData.dashaPeriods ?? null);
       setAllVargas(finalData.allVargas ?? null);
+      
       const input = {
         year: parseInt(formData.dob.split('-')[0]), month: parseInt(formData.dob.split('-')[1]),
         day: parseInt(formData.dob.split('-')[2]),
@@ -310,6 +446,21 @@ export const Home: React.FC = () => {
       };
       setCalcInput(input);
       setCalcData({});  // reset so tabs reload fresh
+      
+      // Fetch Stellium native SVG chart
+      try {
+        const svgRes = await calculatorService.chartSvg({
+          ...input,
+          style: chartStyle,
+          theme: 'classic',
+          size: 400
+        });
+        setStelliumSvg(svgRes.data?.svg ?? svgRes.data ?? null);
+      } catch (svgErr) {
+        console.error('Failed to fetch Stellium native SVG chart:', svgErr);
+        setStelliumSvg(null);
+      }
+
       setActiveTab('chart');
       setWizardStep('results');
     } catch (err: any) {
@@ -1068,6 +1219,14 @@ export const Home: React.FC = () => {
       {wizardStep === 'results' && calcInput && (() => {
         const TABS = [
           { id: 'chart',    label: 'Charts & Dasha', icon: <Compass size={15} /> },
+          { id: 'dignities', label: 'Planetary Dignities', icon: <ShieldAlert size={15} /> },
+          { id: 'patterns',  label: 'Aspect Patterns',   icon: <Star size={15} /> },
+          { id: 'stars',     label: 'Fixed Stars',       icon: <Sparkles size={15} /> },
+          { id: 'arabic',    label: 'Arabic Lots',       icon: <Compass size={15} /> },
+          { id: 'releasing', label: 'Zodiacal Releasing',icon: <Hourglass size={15} /> },
+          { id: 'hours',     label: 'Planetary Hours',   icon: <Sun size={15} /> },
+          { id: 'progressions', label: 'Progressions',   icon: <RefreshCw size={15} /> },
+          { id: 'synastry',  label: 'Love Synastry',     icon: <Heart size={15} /> },
           { id: 'doshas',   label: 'Dosha Report',   icon: <ShieldAlert size={15} /> },
           { id: 'lalkitab', label: 'Lal Kitab Remedies', icon: <Scroll size={15} /> },
           { id: 'gemstone', label: 'Gemstone',        icon: <Gem size={15} /> },
@@ -1599,17 +1758,31 @@ export const Home: React.FC = () => {
                       })
                   ) : (
                     <>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
-                          Rashi Kundali (D1 Chart)
-                        </h3>
-                        <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} style={chartStyle} />
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', width: '100%' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                          <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', textAlign: 'center', fontWeight: 600 }}>
+                            Custom Rashi Chart (D1)
+                          </h3>
+                          <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} style={chartStyle} />
+                        </div>
+
+                        {stelliumSvg && (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                            <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', textAlign: 'center', fontWeight: 600 }}>
+                              Stellium Native SVG Chart (D1)
+                            </h3>
+                            <div 
+                              style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#fff', padding: '10px', borderRadius: '8px' }}
+                              dangerouslySetInnerHTML={{ __html: stelliumSvg }} 
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {navamsaResult && activeFeatures.navamsa_chart && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--color-accent-gold)', textAlign: 'center' }}>
-                            Navamsa Kundali (D-9 Chart)
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '24px', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                          <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', textAlign: 'center', fontWeight: 600 }}>
+                            Custom Navamsa Chart (D-9)
                           </h3>
                           <NavamsaChart navamsaLagna={navamsaResult.navamsaLagna} planets={navamsaResult.planets} style={chartStyle} />
                         </div>
@@ -1893,6 +2066,475 @@ export const Home: React.FC = () => {
                   No Lal Kitab remedies found.
                 </div>
               )
+            )}
+
+            {/* Tab: Planetary Dignities */}
+            {activeTab === 'dignities' && (
+              calcLoading.dignities ? <TabLoader /> :
+              calcData.dignities ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="cosmic-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', border: '1px solid var(--color-border-gold)', background: 'rgba(212,175,55,0.02)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(212,175,55,0.1)', width: '80px', height: '80px', borderRadius: '50%' }}>
+                      <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--color-accent-gold-light)' }}>★</span>
+                    </div>
+                    <div>
+                      <h3 style={{ color: '#fff', margin: '0 0 6px 0', fontSize: '1.2rem' }}>Strongest Planet: {calcData.dignities.strongestPlanet || 'None'}</h3>
+                      <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '0.88rem' }}>
+                        Calculated by aggregating essential dignities (rulership, exaltation, detriment, fall) and accidental strength (house placement and angularity) with score: <strong style={{ color: 'var(--color-accent-gold-light)' }}>{calcData.dignities.strongestScore?.toFixed(1) || '0.0'}</strong>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="cosmic-card" style={{ overflowX: 'auto' }}>
+                    <h3 style={{ color: '#fff', marginBottom: '16px' }}>Dignities & Placements</h3>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold)' }}>
+                          <th style={{ padding: '12px' }}>Planet</th>
+                          <th style={{ padding: '12px' }}>Sign / Degree</th>
+                          <th style={{ padding: '12px' }}>Essential Dignity</th>
+                          <th style={{ padding: '12px' }}>Accidental Score</th>
+                          <th style={{ padding: '12px', textAlign: 'right' }}>Total Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calcData.dignities.dignities.map((d: any) => {
+                          const interp = d.interpretation || (d.dignitiesList && d.dignitiesList.join(', ')) || 'None';
+                          const isChallenged = interp.toLowerCase().includes('detriment') || interp.toLowerCase().includes('fall');
+                          const isHarmonious = interp.toLowerCase().includes('rulership') || interp.toLowerCase().includes('exaltation') || interp.toLowerCase().includes('domicile');
+                          return (
+                            <tr key={d.planet} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)' }}>
+                              <td style={{ padding: '12px', fontWeight: 600, color: '#fff' }}>{d.planet}</td>
+                              <td style={{ padding: '12px', fontSize: '0.88rem', color: 'var(--color-text-muted)' }}>{d.sign} ({d.degree?.toFixed(2)}°)</td>
+                              <td style={{ padding: '12px', fontSize: '0.88rem' }}>
+                                <span style={{ color: isChallenged ? '#e57373' : isHarmonious ? '#81c784' : '#fff' }}>
+                                  {interp}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px', fontSize: '0.88rem', color: 'var(--color-text-muted)' }}>{d.accidentalScore?.toFixed(1) || '0.0'}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: 'var(--color-accent-gold-light)' }}>{d.totalScore?.toFixed(1) || '0.0'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : null
+            )}
+
+            {/* Tab: Aspect Patterns */}
+            {activeTab === 'patterns' && (
+              calcLoading.patterns ? <TabLoader /> :
+              calcData.patterns ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                    Aspect patterns represent complex geometric relationships between multiple planets in your birth chart.
+                  </p>
+                  {calcData.patterns.patterns && calcData.patterns.patterns.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+                      {calcData.patterns.patterns.map((p: any, i: number) => (
+                        <div key={i} className="cosmic-card" style={{ border: '1px solid var(--color-border-glass)' }}>
+                          <h4 style={{ color: 'var(--color-accent-gold-light)', margin: '0 0 6px 0', fontSize: '1.1rem', fontWeight: 600 }}>{p.name}</h4>
+                          <p style={{ color: '#fff', fontSize: '0.85rem', marginBottom: '8px', margin: 0 }}>
+                            <strong>Planets:</strong> {p.planets.join(', ')}
+                          </p>
+                          {(p.quality || p.element || p.focalPlanet) && (
+                            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.82rem', margin: '6px 0 0 0' }}>
+                              {p.focalPlanet && <>Focal Planet: <strong>{p.focalPlanet}</strong> · </>}
+                              {p.quality && <>Quality: <strong>{p.quality}</strong> · </>}
+                              {p.element && <>Element: <strong>{p.element}</strong></>}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="cosmic-card" style={{ textAlign: 'center', padding: '30px' }}>
+                      <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>No major geometric aspect patterns found in this chart.</p>
+                    </div>
+                  )}
+                </div>
+              ) : null
+            )}
+
+            {/* Tab: Fixed Stars */}
+            {activeTab === 'stars' && (
+              calcLoading.stars ? <TabLoader /> :
+              calcData.stars ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                    Fixed Stars are distant suns that add specific mystical attributes when in close conjunction (within 1.5° orb) to your natal planets.
+                  </p>
+                  {calcData.stars.fixedStars && calcData.stars.fixedStars.length > 0 ? (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold)' }}>
+                            <th style={{ padding: '12px' }}>Fixed Star</th>
+                            <th style={{ padding: '12px' }}>Natal Planet</th>
+                            <th style={{ padding: '12px' }}>Orb</th>
+                            <th style={{ padding: '12px' }}>Nature / Influence</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {calcData.stars.fixedStars.map((c: any, i: number) => (
+                            <tr key={i} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)' }}>
+                              <td style={{ padding: '12px', fontWeight: 600, color: '#fff' }}>
+                                {c.star} {c.constellation && `(${c.constellation})`}
+                                <div style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                  Pos: {c.starSign} {c.starDegree}
+                                </div>
+                              </td>
+                              <td style={{ padding: '12px', color: 'var(--color-accent-gold-light)', fontWeight: 600 }}>
+                                {c.planet}
+                                <div style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                  Pos: {c.planetSign} {c.planetDegree}
+                                </div>
+                              </td>
+                              <td style={{ padding: '12px', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{c.orb.toFixed(2)}°</td>
+                              <td style={{ padding: '12px', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                                {c.isRoyal && <strong style={{ color: 'var(--color-accent-gold)', display: 'block', marginBottom: '2px' }}>★ Royal Star</strong>}
+                                {c.nature || 'General astrological influence.'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="cosmic-card" style={{ textAlign: 'center', padding: '30px' }}>
+                      <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>No fixed star conjunctions found within a 1.5° orb.</p>
+                    </div>
+                  )}
+                </div>
+              ) : null
+            )}
+
+            {/* Tab: Arabic Lots */}
+            {activeTab === 'arabic' && (
+              calcLoading.arabic ? <TabLoader /> :
+              calcData.arabic ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                    Arabic Lots (Sahams) are calculated points representing specific areas of destiny, health, career, and relationships.
+                  </p>
+                  {calcData.arabic.arabicParts && calcData.arabic.arabicParts.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+                      {calcData.arabic.arabicParts.map((p: any, i: number) => (
+                        <div key={i} className="cosmic-card" style={{ border: '1px solid var(--color-border-glass)', padding: '16px' }}>
+                          <h4 style={{ color: 'var(--color-accent-gold-light)', margin: '0 0 6px 0', fontSize: '0.95rem', fontWeight: 600 }}>{p.name}</h4>
+                          <p style={{ color: '#fff', fontSize: '0.85rem', margin: 0 }}>
+                            {p.sign} {p.degree}
+                          </p>
+                          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', margin: '4px 0 0 0' }}>
+                            House {p.house} · Longitude: {p.longitude.toFixed(2)}°
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="cosmic-card" style={{ textAlign: 'center', padding: '30px' }}>
+                      <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>No Arabic lots calculated.</p>
+                    </div>
+                  )}
+                </div>
+              ) : null
+            )}
+
+            {/* Tab: Zodiacal Releasing */}
+            {activeTab === 'releasing' && (
+              calcLoading.releasing ? <TabLoader /> :
+              calcData.releasing ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="cosmic-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <h4 style={{ color: '#fff', margin: 0, fontSize: '1rem' }}>Select Lot & Calculate</h4>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <select 
+                        value={releasingLot} 
+                        onChange={(e) => handleReleasingLotChange(e.target.value)} 
+                        style={{
+                          flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--color-border-glass)',
+                          borderRadius: '8px', padding: '10px 14px', color: '#fff', fontSize: '0.95rem', outline: 'none'
+                        }}
+                      >
+                        <option value="Part of Fortune" style={{ background: '#0c0f24' }}>Part of Fortune (Health, Wealth)</option>
+                        <option value="Part of Spirit" style={{ background: '#0c0f24' }}>Part of Spirit (Career, Soul Intent)</option>
+                        <option value="Part of Eros (Love)" style={{ background: '#0c0f24' }}>Part of Eros (Relationships)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 style={{ color: '#fff', marginBottom: '16px' }}>Level 1 Chapters</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {calcData.releasing.levels['1'].map((p: any, idx: number) => {
+                        const now = new Date();
+                        const start = new Date(p.start);
+                        const end = new Date(p.end);
+                        const isActive = now >= start && now <= end;
+
+                        return (
+                          <div key={idx} style={{ 
+                            background: isActive ? 'radial-gradient(circle at center, rgba(184, 147, 43, 0.06), rgba(255,255,255,0.01))' : 'rgba(255, 255, 255, 0.02)', 
+                            border: isActive ? '1px solid var(--color-border-gold)' : '1px solid var(--color-border-glass)', 
+                            borderRadius: '10px', 
+                            padding: '16px',
+                            position: 'relative'
+                          }}>
+                            {isActive && (
+                              <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--color-accent-gold)', color: '#000', fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '0 0 0 6px' }}>ACTIVE</span>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <strong style={{ color: '#fff', fontSize: '1rem' }}>{p.sign} ({p.ruler})</strong>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                {new Date(p.start).toLocaleDateString()} — {new Date(p.end).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                              {p.isPeak && <span style={{ background: 'rgba(184, 147, 43, 0.1)', color: 'var(--color-accent-gold)', borderRadius: '6px', padding: '1px 6px', fontSize: '0.7rem' }}>★ Peak Phase</span>}
+                              {p.isLoosingBond && <span style={{ background: 'rgba(220, 80, 80, 0.1)', color: '#e57373', borderRadius: '6px', padding: '1px 6px', fontSize: '0.7rem' }}>⚠ Loose Bond</span>}
+                              {p.isAngular && <span style={{ background: 'rgba(80, 200, 80, 0.1)', color: '#81c784', borderRadius: '6px', padding: '1px 6px', fontSize: '0.7rem' }}>✓ Angular</span>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : null
+            )}
+
+            {/* Tab: Planetary Hours */}
+            {activeTab === 'hours' && (
+              calcLoading.hours ? <TabLoader /> :
+              calcData.hours ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                    Planetary hours partition the day and night into 12 segments each, ruled by specific planetary forces.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {calcData.hours.hours.map((h: any) => (
+                      <div key={h.hourNumber} style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '70px 1fr 140px', 
+                        gap: '12px', 
+                        alignItems: 'center',
+                        background: h.isDayHour ? 'rgba(255, 184, 43, 0.02)' : 'rgba(10, 11, 28, 0.3)',
+                        border: '1px solid var(--color-border-glass)',
+                        borderRadius: '8px',
+                        padding: '10px 14px'
+                      }}>
+                        <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
+                          {h.isDayHour ? '☀ Day' : '☾ Night'} #{h.hourNumber}
+                        </span>
+                        <strong style={{ color: '#fff', fontSize: '0.92rem' }}>Hour of {h.ruler}</strong>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', textAlign: 'right' }}>
+                          {new Date(h.start).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} — {new Date(h.end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null
+            )}
+
+            {/* Tab: Progressions */}
+            {activeTab === 'progressions' && (
+              calcLoading.progressions ? <TabLoader /> :
+              calcData.progressions ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="cosmic-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <h4 style={{ color: '#fff', margin: 0, fontSize: '1rem' }}>Progression Age Config</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <input 
+                        type="number" 
+                        value={progressionAge} 
+                        onChange={(e) => handleProgressionAgeChange(parseInt(e.target.value) || 0)} 
+                        style={{
+                          background: 'rgba(255,255,255,0.04)', border: '1px solid var(--color-border-glass)',
+                          borderRadius: '8px', padding: '10px 14px', color: '#fff', fontSize: '0.95rem', outline: 'none', width: '120px'
+                        }}
+                        min="0"
+                        max="120"
+                      />
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.88rem' }}>Years (Secondary Progression)</span>
+                    </div>
+                  </div>
+
+                  <div className="cosmic-card" style={{ overflowX: 'auto' }}>
+                    <h3 style={{ color: '#fff', marginBottom: '16px' }}>Progressed Placements (Age {calcData.progressions.age})</h3>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold)' }}>
+                          <th style={{ padding: '12px' }}>Planet</th>
+                          <th style={{ padding: '12px' }}>Progressed Sign</th>
+                          <th style={{ padding: '12px' }}>Progressed Degree</th>
+                          <th style={{ padding: '12px' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calcData.progressions.planets.map((p: any) => (
+                          <tr key={p.name} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)' }}>
+                            <td style={{ padding: '12px', fontWeight: 600, color: '#fff' }}>{p.name}</td>
+                            <td style={{ padding: '12px', fontSize: '0.88rem', color: 'var(--color-text-muted)' }}>{p.sign}</td>
+                            <td style={{ padding: '12px', fontSize: '0.88rem', color: 'var(--color-text-muted)' }}>{p.degree}</td>
+                            <td style={{ padding: '12px' }}>
+                              <span style={{ 
+                                background: p.retrograde ? 'rgba(220, 80, 80, 0.08)' : 'rgba(80, 200, 80, 0.08)',
+                                border: `1px solid ${p.retrograde ? 'rgba(220, 80, 80, 0.2)' : 'rgba(80, 200, 80, 0.2)'}`,
+                                borderRadius: '12px', padding: '2px 8px', fontSize: '0.72rem', color: p.retrograde ? '#e57373' : '#81c784'
+                              }}>
+                                {p.retrograde ? 'Retrograde' : 'Direct'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : null
+            )}
+
+            {/* Tab: Love Synastry */}
+            {activeTab === 'synastry' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <form onSubmit={handlePartnerSubmit} className="cosmic-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <h3 style={{ color: 'var(--color-accent-gold-light)', margin: 0, fontSize: '1.1rem' }}>Enter Partner's Details</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Partner Name</label>
+                      <input 
+                        value={partnerForm.name} 
+                        onChange={(e) => setPartnerForm(f => ({ ...f, name: e.target.value }))} 
+                        placeholder="Name" 
+                        style={{ ...inputStyle, width: '100%' }} 
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Date of Birth *</label>
+                      <input 
+                        type="date" 
+                        value={partnerForm.dob} 
+                        onChange={(e) => setPartnerForm(f => ({ ...f, dob: e.target.value }))} 
+                        required 
+                        style={{ ...inputStyle, width: '100%' }} 
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Time of Birth</label>
+                      <input 
+                        type="time" 
+                        value={partnerForm.tob} 
+                        onChange={(e) => setPartnerForm(f => ({ ...f, tob: e.target.value }))} 
+                        style={{ ...inputStyle, width: '100%' }} 
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ position: 'relative' }}>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Place of Birth</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        value={partnerForm.pob} 
+                        onChange={(e) => {
+                          skipPartnerSearchRef.current = false;
+                          setPartnerForm(f => ({ ...f, pob: e.target.value }));
+                        }} 
+                        placeholder="e.g. London, UK" 
+                        style={{ ...inputStyle, width: '100%', paddingRight: '40px' }} 
+                      />
+                      <div style={{ position: 'absolute', right: '12px', display: 'flex', alignItems: 'center', color: 'var(--color-accent-gold)', opacity: 0.8 }}>
+                        {partnerGeoLoading ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={16} />}
+                      </div>
+                    </div>
+                    {partnerSuggestions.length > 0 && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 150, background: 'rgba(10, 11, 28, 0.98)', border: '1px solid var(--color-border-gold)', borderRadius: '10px', marginTop: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                        {partnerSuggestions.map((s, i) => (
+                          <div key={i} onClick={() => {
+                            const { lat, lon, isIndia, primary, state, country } = normalizePlace(s);
+                            const tzVal = isIndia ? 5.5 : tzFromLon(parseFloat(lon));
+                            const label = [primary, state, country].filter(Boolean).join(', ');
+                            skipPartnerSearchRef.current = true;
+                            setPartnerForm(f => ({ ...f, pob: label, lat, lon, tzone: tzVal.toFixed(1) }));
+                            setPartnerSuggestions([]);
+                          }} style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#fff', fontSize: '0.85rem' }}>
+                            {s.name || s.display_name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Lat</label>
+                      <input type="number" step="any" value={partnerForm.lat} onChange={(e) => setPartnerForm(f => ({ ...f, lat: e.target.value }))} required style={{ ...inputStyle, width: '100%' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Lon</label>
+                      <input type="number" step="any" value={partnerForm.lon} onChange={(e) => setPartnerForm(f => ({ ...f, lon: e.target.value }))} required style={{ ...inputStyle, width: '100%' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Tzone</label>
+                      <input type="number" step="0.5" value={partnerForm.tzone} onChange={(e) => setPartnerForm(f => ({ ...f, tzone: e.target.value }))} required style={{ ...inputStyle, width: '100%' }} />
+                    </div>
+                  </div>
+
+                  <button type="submit" className="btn-gold" disabled={calcLoading.synastry} style={{ padding: '10px 20px', display: 'flex', justifySelf: 'start', gap: '8px', alignItems: 'center' }}>
+                    {calcLoading.synastry ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Comparing…</> : <>Compare Compatibility <ChevronRight size={14} /></>}
+                  </button>
+                </form>
+
+                {calcLoading.synastry && <TabLoader />}
+
+                {calcData.synastry && !calcLoading.synastry && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div className="cosmic-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', border: '1px solid var(--color-border-gold)', background: 'radial-gradient(circle at center, rgba(184, 147, 43, 0.05), rgba(5, 6, 15, 0))' }}>
+                      <div style={{ 
+                        display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', 
+                        background: 'rgba(10, 11, 28, 0.8)', border: `3px solid ${calcData.synastry.score >= 70 ? '#4caf50' : calcData.synastry.score >= 50 ? '#f0c040' : '#e05252'}`,
+                        width: '90px', height: '90px', borderRadius: '50%'
+                      }}>
+                        <span style={{ fontSize: '1.6rem', fontWeight: 800, color: calcData.synastry.score >= 70 ? '#4caf50' : calcData.synastry.score >= 50 ? '#f0c040' : '#e05252' }}>{Math.round(calcData.synastry.score)}%</span>
+                      </div>
+                      <div>
+                        <h4 style={{ color: '#fff', margin: '0 0 4px 0', fontSize: '1.15rem' }}>Synastry Compatibility Score</h4>
+                        <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '0.85rem', lineHeight: 1.4 }}>
+                          Indicates the level of geometric harmony between both natal charts. High score values represent easy flow of energy; lower values suggest growth opportunities through communication.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="cosmic-card" style={{ overflowX: 'auto' }}>
+                      <h4 style={{ color: '#fff', marginBottom: '14px' }}>Aspect Alignments</h4>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--color-border-glass)', color: 'var(--color-accent-gold)' }}>
+                            <th style={{ padding: '10px' }}>Your Planet</th>
+                            <th style={{ padding: '10px', textAlign: 'center' }}>Aspect</th>
+                            <th style={{ padding: '10px' }}>Partner's Planet</th>
+                            <th style={{ padding: '10px', textAlign: 'center' }}>Orb</th>
+                            <th style={{ padding: '10px' }}>Influence</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {calcData.synastry.aspects.map((a: any, i: number) => (
+                            <tr key={i} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)' }}>
+                              <td style={{ padding: '10px', fontWeight: 600, color: '#fff' }}>{a.planet1}</td>
+                              <td style={{ padding: '10px', textAlign: 'center', color: 'var(--color-accent-gold-light)', fontWeight: 500 }}>{a.aspect}</td>
+                              <td style={{ padding: '10px', fontWeight: 600, color: '#fff' }}>{a.planet2}</td>
+                              <td style={{ padding: '10px', textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{a.orb.toFixed(2)}°</td>
+                              <td style={{ padding: '10px', fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>{a.description}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </section>
         );

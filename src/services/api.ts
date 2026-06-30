@@ -197,6 +197,20 @@ export const calculatorService = {
   varshphal:      (d: CalcInput) => api.post('/api/v1/astrology/calc/varshphal', d),
   planetaryAspects:(d: CalcInput) => api.post('/api/v1/astrology/calc/planetary-aspects', d),
   lalkitab:        (d: CalcInput) => api.post<LalKitabResult>('/api/v1/astrology/calc/lalkitab-remedies', d),
+  dignities:       (d: CalcInput) => api.post('/api/v1/astrology/calc/dignities', d),
+  aspectPatterns:  (d: CalcInput) => api.post('/api/v1/astrology/calc/aspect-patterns', d),
+  fixedStars:      (d: CalcInput) => api.post('/api/v1/astrology/calc/fixed-stars', d),
+  arabicParts:     (d: CalcInput) => api.post('/api/v1/astrology/calc/arabic-parts', d),
+  synastry:        (person1: CalcInput & { name?: string }, person2: CalcInput & { name?: string }) =>
+                    api.post('/api/v1/astrology/calc/synastry', { person1, person2 }),
+  progressions:    (d: CalcInput & { target_year?: number; age?: number }) =>
+                    api.post('/api/v1/astrology/calc/progressions', d),
+  zodiacalReleasing:(d: CalcInput & { lot?: string; max_level?: number }) =>
+                    api.post('/api/v1/astrology/calc/zodiacal-releasing', d),
+  planetaryHours:  (d: { year: number; month: number; day: number; lat: number; lon: number; tzone: number }) =>
+                    api.post('/api/v1/astrology/calc/planetary-hours', d),
+  chartSvg:        (d: CalcInput & { style?: string; theme?: string; size?: number }) =>
+                    api.post<{ svg: string }>('/api/v1/astrology/calc/chart-svg', d),
 };
 
 export type LalKitabRemedyDbItem = {
