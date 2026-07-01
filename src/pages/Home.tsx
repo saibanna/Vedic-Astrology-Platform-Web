@@ -1717,79 +1717,84 @@ export const Home: React.FC = () => {
                   </button>
                 </div>
 
-                <div style={{
-                  margin: '20px 0 40px 0',
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  gap: '24px',
-                  alignItems: 'start'
-                }}>
-                  {allVargas ? (
-                    ["D1", "D9", "D30", "D3", "D10", "D60", "D7", "D12", "D20", "D24", "D16", "D2"]
-                      .filter(key => allVargas[key])
-                      .map(key => {
-                        const v = allVargas[key];
-                        let title = v.name;
-                        if (key === 'D2') title = 'Hora D-2 (US)';
-                        else if (key === 'D3') title = 'Drekkana D-3 (Trd)';
-                        else if (key === 'D10') title = 'Dashamsha D-10 (Trd)';
-                        else if (key === 'D60') title = 'Shastiamsha D-60 (Trd)';
-                        else if (key === 'D7') title = 'Saptamsha D-7 (Trd)';
-                        else if (key === 'D12') title = 'Dwadasamsha D-12 (Trd)';
-                        else if (key === 'D20') title = 'Vimsamsha D-20 (Trd)';
-                        else if (key === 'D24') title = 'Chaturvimshamsha D-24 (Trd)';
-                        else if (key === 'D16') title = 'Shodashamsha D-16 (Trd)';
-                        else if (key === 'D30') title = 'Trimshamsha D-30 (Trd)';
+                {/* 1. Main Birth Chart Comparison Section */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', width: '100%', margin: '20px 0' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                    <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', textAlign: 'center', fontWeight: 600 }}>
+                      Custom Rashi Chart (D1)
+                    </h3>
+                    <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} style={chartStyle} />
+                  </div>
 
-                        return (
-                          <div key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <h3 style={{ fontSize: '1.15rem', marginBottom: '12px', color: 'var(--color-accent-gold)', textAlign: 'center', fontWeight: 600 }}>
-                              {title}
-                            </h3>
-                            <KundaliChart 
-                              lagna={v.lagna} 
-                              planets={v.planets} 
-                              style={chartStyle} 
-                              showLegend={false} 
-                              title={key} 
-                            />
-                          </div>
-                        );
-                      })
-                  ) : (
-                    <>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', width: '100%' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                          <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', textAlign: 'center', fontWeight: 600 }}>
-                            Custom Rashi Chart (D1)
-                          </h3>
-                          <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} style={chartStyle} />
-                        </div>
-
-                        {stelliumSvg && (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                            <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', textAlign: 'center', fontWeight: 600 }}>
-                              Stellium Native SVG Chart (D1)
-                            </h3>
-                            <div 
-                              style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#fff', padding: '10px', borderRadius: '8px' }}
-                              dangerouslySetInnerHTML={{ __html: stelliumSvg }} 
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {navamsaResult && activeFeatures.navamsa_chart && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '24px', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                          <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', textAlign: 'center', fontWeight: 600 }}>
-                            Custom Navamsa Chart (D-9)
-                          </h3>
-                          <NavamsaChart navamsaLagna={navamsaResult.navamsaLagna} planets={navamsaResult.planets} style={chartStyle} />
-                        </div>
-                      )}
-                    </>
+                  {stelliumSvg && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                      <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', textAlign: 'center', fontWeight: 600 }}>
+                        Stellium Native SVG Chart (D1)
+                      </h3>
+                      <div 
+                        style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#fff', padding: '10px', borderRadius: '8px' }}
+                        dangerouslySetInnerHTML={{ __html: stelliumSvg }} 
+                      />
+                    </div>
                   )}
                 </div>
+
+                {/* 2. Main Navamsa Chart Section */}
+                {navamsaResult && activeFeatures.navamsa_chart && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                    <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', textAlign: 'center', fontWeight: 600 }}>
+                      Custom Navamsa Chart (D-9)
+                    </h3>
+                    <NavamsaChart navamsaLagna={navamsaResult.navamsaLagna} planets={navamsaResult.planets} style={chartStyle} />
+                  </div>
+                )}
+
+                {/* 3. Additional Divisional Charts Section (Vargas) */}
+                {allVargas && (
+                  <div style={{ marginTop: '24px', marginBottom: '40px' }}>
+                    <h3 style={{ fontSize: '1.4rem', color: 'var(--color-accent-gold)', marginBottom: '16px', textAlign: 'center', fontWeight: 600, borderBottom: '1px solid var(--color-border-glass)', paddingBottom: '8px' }}>
+                      Divisional Vargas Charts
+                    </h3>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                      gap: '24px',
+                      alignItems: 'start'
+                    }}>
+                      {["D2", "D3", "D7", "D10", "D12", "D16", "D20", "D24", "D30", "D60"]
+                        .filter(key => allVargas[key])
+                        .map(key => {
+                          const v = allVargas[key];
+                          let title = v.name;
+                          if (key === 'D2') title = 'Hora D-2 (US)';
+                          else if (key === 'D3') title = 'Drekkana D-3 (Trd)';
+                          else if (key === 'D10') title = 'Dashamsha D-10 (Trd)';
+                          else if (key === 'D60') title = 'Shastiamsha D-60 (Trd)';
+                          else if (key === 'D7') title = 'Saptamsha D-7 (Trd)';
+                          else if (key === 'D12') title = 'Dwadasamsha D-12 (Trd)';
+                          else if (key === 'D20') title = 'Vimsamsha D-20 (Trd)';
+                          else if (key === 'D24') title = 'Chaturvimshamsha D-24 (Trd)';
+                          else if (key === 'D16') title = 'Shodashamsha D-16 (Trd)';
+                          else if (key === 'D30') title = 'Trimshamsha D-30 (Trd)';
+
+                          return (
+                            <div key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                              <h3 style={{ fontSize: '1.15rem', marginBottom: '12px', color: 'var(--color-accent-gold)', textAlign: 'center', fontWeight: 600 }}>
+                                {title}
+                              </h3>
+                              <KundaliChart 
+                                lagna={v.lagna} 
+                                planets={v.planets} 
+                                style={chartStyle} 
+                                showLegend={false} 
+                                title={key} 
+                              />
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
 
                 {dashaResult && activeFeatures.dasha && (
                   <div style={{ margin: '40px 0' }}>
