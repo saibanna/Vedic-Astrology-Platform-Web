@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { astrologyService, calculatorService, masterDataService } from '../services/api';
-import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll, Flame, RefreshCw, Calendar, Heart, Hourglass, ChevronRight } from 'lucide-react';
+import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll, Flame, RefreshCw, Calendar, ChevronRight } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
@@ -56,7 +56,7 @@ export const Home: React.FC = () => {
   const [navamsaResult, setNavamsaResult] = useState<any | null>(null);
   const [dashaResult, setDashaResult] = useState<any | null>(null);
   const [allVargas, setAllVargas] = useState<any | null>(null);
-  const [stelliumSvg, setStelliumSvg] = useState<string | null>(null);
+
   const [selectedZodiac, setSelectedZodiac] = useState<string | null>(null);
   const [horoscope, setHoroscope] = useState<string | null>(null);
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
@@ -447,19 +447,7 @@ export const Home: React.FC = () => {
       setCalcInput(input);
       setCalcData({});  // reset so tabs reload fresh
       
-      // Fetch Stellium native SVG chart
-      try {
-        const svgRes = await calculatorService.chartSvg({
-          ...input,
-          style: chartStyle,
-          theme: 'classic',
-          size: 400
-        });
-        setStelliumSvg(svgRes.data?.svg ?? svgRes.data ?? null);
-      } catch (svgErr) {
-        console.error('Failed to fetch Stellium native SVG chart:', svgErr);
-        setStelliumSvg(null);
-      }
+      // Stellium native SVG chart disabled (Western system)
 
       setActiveTab('chart');
       setWizardStep('results');
@@ -1219,14 +1207,6 @@ export const Home: React.FC = () => {
       {wizardStep === 'results' && calcInput && (() => {
         const TABS = [
           { id: 'chart',    label: 'Charts & Dasha', icon: <Compass size={15} /> },
-          { id: 'dignities', label: 'Planetary Dignities', icon: <ShieldAlert size={15} /> },
-          { id: 'patterns',  label: 'Aspect Patterns',   icon: <Star size={15} /> },
-          { id: 'stars',     label: 'Fixed Stars',       icon: <Sparkles size={15} /> },
-          { id: 'arabic',    label: 'Arabic Lots',       icon: <Compass size={15} /> },
-          { id: 'releasing', label: 'Zodiacal Releasing',icon: <Hourglass size={15} /> },
-          { id: 'hours',     label: 'Planetary Hours',   icon: <Sun size={15} /> },
-          { id: 'progressions', label: 'Progressions',   icon: <RefreshCw size={15} /> },
-          { id: 'synastry',  label: 'Love Synastry',     icon: <Heart size={15} /> },
           { id: 'doshas',   label: 'Dosha Report',   icon: <ShieldAlert size={15} /> },
           { id: 'lalkitab', label: 'Lal Kitab Remedies', icon: <Scroll size={15} /> },
           { id: 'gemstone', label: 'Gemstone',        icon: <Gem size={15} /> },
@@ -1717,26 +1697,14 @@ export const Home: React.FC = () => {
                   </button>
                 </div>
 
-                {/* 1. Main Birth Chart Comparison Section */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', width: '100%', margin: '20px 0' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                {/* 1. Main Birth Chart Section */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', margin: '20px 0' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)', width: '100%', maxWidth: '420px' }}>
                     <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', textAlign: 'center', fontWeight: 600 }}>
                       Custom Rashi Chart (D1)
                     </h3>
                     <KundaliChart lagna={chartResult.lagna} planets={chartResult.planets} style={chartStyle} />
                   </div>
-
-                  {stelliumSvg && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.01)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'var(--color-accent-gold-light)', textAlign: 'center', fontWeight: 600 }}>
-                        Stellium Native SVG Chart (D1)
-                      </h3>
-                      <div 
-                        style={{ width: '100%', maxWidth: '380px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#fff', padding: '10px', borderRadius: '8px' }}
-                        dangerouslySetInnerHTML={{ __html: stelliumSvg }} 
-                      />
-                    </div>
-                  )}
                 </div>
 
                 {/* 2. Main Navamsa Chart Section */}
