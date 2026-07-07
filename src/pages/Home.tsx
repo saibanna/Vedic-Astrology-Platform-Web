@@ -503,18 +503,6 @@ export const Home: React.FC = () => {
     setChartResult(null);
     setCalcInput(null);
     setCalcData({});
-    setFormData({
-      name: '',
-      dob: '',
-      tob: '',
-      pob: '',
-      lat: '',
-      lon: '',
-      tzone: '5.5',
-      mobile: '',
-      email: '',
-      gender: ''
-    });
   };
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     if (e.target.name === 'pob') {
@@ -1050,11 +1038,11 @@ export const Home: React.FC = () => {
                       style={{ background: 'rgba(5, 6, 15, 0.85)', cursor: 'pointer' }}
                     >
                       <option value="general">General Reading</option>
-                      <option value="career">Career & Growth</option>
-                      <option value="marriage">Marriage & Relations</option>
-                      <option value="finance">Wealth & Finance</option>
-                      <option value="health">Health & Vitality</option>
-                      <option value="spirituality">Spirituality & Soul</option>
+                      <option value="career" disabled>Career & Growth (Premium)</option>
+                      <option value="marriage" disabled>Marriage & Relations (Premium)</option>
+                      <option value="finance" disabled>Wealth & Finance (Premium)</option>
+                      <option value="health" disabled>Health & Vitality (Premium)</option>
+                      <option value="spirituality" disabled>Spirituality & Soul (Premium)</option>
                     </select>
                   </div>
 
@@ -1628,17 +1616,39 @@ export const Home: React.FC = () => {
 
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', borderBottom: '1px solid var(--color-border-glass)', marginBottom: '24px' }}>
-              {TABS.map(t => (
-                <button key={t.id} onClick={() => switchTab(t.id, calcInput)} style={{
-                  background: activeTab === t.id ? 'rgba(212,175,55,0.15)' : 'none',
-                  border: 'none', borderBottom: activeTab === t.id ? '2px solid var(--color-accent-gold)' : '2px solid transparent',
-                  color: activeTab === t.id ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
-                  padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                  fontWeight: activeTab === t.id ? 600 : 400, fontSize: '0.88rem', transition: 'all 0.2s',
-                }}>
-                  {t.icon} {t.label}
-                </button>
-              ))}
+              {TABS.map(t => {
+                const isDisabled = ['lalkitab', 'nakshatra', 'transit'].includes(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      if (!isDisabled) {
+                        switchTab(t.id, calcInput);
+                      }
+                    }}
+                    style={{
+                      background: activeTab === t.id ? 'rgba(212,175,55,0.15)' : 'none',
+                      border: 'none',
+                      borderBottom: activeTab === t.id ? '2px solid var(--color-accent-gold)' : '2px solid transparent',
+                      color: isDisabled 
+                        ? 'rgba(255, 255, 255, 0.35)' 
+                        : activeTab === t.id ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
+                      padding: '10px 16px',
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontWeight: activeTab === t.id ? 600 : 400,
+                      fontSize: '0.88rem',
+                      transition: 'all 0.2s',
+                      opacity: isDisabled ? 0.55 : 1
+                    }}
+                    title={isDisabled ? "This feature is currently disabled" : ""}
+                  >
+                    {t.icon} {t.label} {isDisabled && <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>🔒</span>}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Tab: Charts & Dasha */}
