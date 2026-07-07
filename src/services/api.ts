@@ -84,6 +84,7 @@ export const bookingService = {
 export type AstrologyCalcInput = {
   year: number; month: number; day: number;
   hour: number; minute: number;
+  second?: number;
   lat: number; lon: number; tzone: number;
   style?: string;
 };
@@ -161,6 +162,7 @@ export type LalKitabResult = {
 export type CalcInput = {
   year: number; month: number; day: number;
   hour: number; minute: number;
+  second?: number;
   lat: number; lon: number; tzone: number;
 };
 

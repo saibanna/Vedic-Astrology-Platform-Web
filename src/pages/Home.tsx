@@ -285,9 +285,12 @@ export const Home: React.FC = () => {
     setCalcLoading(l => ({ ...l, synastry: true }));
     try {
       const [pYear, pMonth, pDay] = partnerForm.dob.split('-').map(Number);
-      const [pHour, pMinute] = partnerForm.tob.split(':').map(Number);
+      const partnerTobParts = partnerForm.tob.split(':').map(Number);
       const partnerPayload = {
-        year: pYear, month: pMonth, day: pDay, hour: pHour || 12, minute: pMinute || 0,
+        year: pYear, month: pMonth, day: pDay,
+        hour: partnerTobParts[0] || 12,
+        minute: partnerTobParts[1] || 0,
+        second: partnerTobParts[2] || 0,
         lat: parseFloat(partnerForm.lat), lon: parseFloat(partnerForm.lon), tzone: parseFloat(partnerForm.tzone),
         name: partnerForm.name || 'Partner'
       };
@@ -437,12 +440,17 @@ export const Home: React.FC = () => {
       setDashaResult(finalData.dashaPeriods ?? null);
       setAllVargas(finalData.allVargas ?? null);
       
+      const tobParts = (formData.tob || '12:00:00').split(':').map(Number);
       const input = {
-        year: parseInt(formData.dob.split('-')[0]), month: parseInt(formData.dob.split('-')[1]),
+        year: parseInt(formData.dob.split('-')[0]),
+        month: parseInt(formData.dob.split('-')[1]),
         day: parseInt(formData.dob.split('-')[2]),
-        hour: parseInt((formData.tob || '12:00').split(':')[0]),
-        minute: parseInt((formData.tob || '12:00').split(':')[1]),
-        lat: parseFloat(formData.lat), lon: parseFloat(formData.lon), tzone: parseFloat(formData.tzone),
+        hour: tobParts[0] || 0,
+        minute: tobParts[1] || 0,
+        second: tobParts[2] || 0,
+        lat: parseFloat(formData.lat),
+        lon: parseFloat(formData.lon),
+        tzone: parseFloat(formData.tzone),
       };
       setCalcInput(input);
       setCalcData({});  // reset so tabs reload fresh
@@ -896,6 +904,7 @@ export const Home: React.FC = () => {
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                       <input 
                         type="time" 
+                        step="1"
                         name="tob" 
                         value={formData.tob} 
                         onChange={handleInputChange} 
@@ -2399,6 +2408,7 @@ export const Home: React.FC = () => {
                       <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Time of Birth</label>
                       <input 
                         type="time" 
+                        step="1"
                         value={partnerForm.tob} 
                         onChange={(e) => setPartnerForm(f => ({ ...f, tob: e.target.value }))} 
                         style={{ ...inputStyle, width: '100%' }} 
