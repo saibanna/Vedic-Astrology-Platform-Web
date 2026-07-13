@@ -1691,13 +1691,13 @@ export const Home: React.FC = () => {
               <div className="cosmic-card" style={{ padding: '24px', textAlign: 'center', border: '1px solid var(--color-border-glass)' }}>
                 <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: '8px' }}>Sun</span>
                 <p style={{ fontSize: '1.8rem', fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>
-                  {chartResult?.birthChart?.planets?.find((p: any) => p.name.includes('Sun'))?.sign || 'N/A'}
+                  {chartResult?.planets?.find((p: any) => p.name.includes('Sun'))?.sign || 'N/A'}
                 </p>
               </div>
               <div className="cosmic-card" style={{ padding: '24px', textAlign: 'center', border: '1px solid var(--color-border-glass)' }}>
                 <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: '8px' }}>Moon</span>
                 <p style={{ fontSize: '1.8rem', fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>
-                  {chartResult?.birthChart?.planets?.find((p: any) => p.name.includes('Moon'))?.sign || 'N/A'}
+                  {chartResult?.planets?.find((p: any) => p.name.includes('Moon'))?.sign || 'N/A'}
                 </p>
               </div>
               <div className="cosmic-card" style={{ padding: '24px', textAlign: 'center', border: '1px solid var(--color-border-glass)' }}>
