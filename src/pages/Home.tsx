@@ -110,6 +110,7 @@ export const Home: React.FC = () => {
   const [allVargas, setAllVargas] = useState<any | null>(null);
 
   const [selectedZodiac, setSelectedZodiac] = useState<string | null>(null);
+  const [premiumPrompt, setPremiumPrompt] = useState<string | null>(null);
   const [horoscope, setHoroscope] = useState<string | null>(null);
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
 
@@ -1719,13 +1720,17 @@ export const Home: React.FC = () => {
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', borderBottom: '1px solid var(--color-border-glass)', marginBottom: '24px' }}>
               {TABS.map(t => {
-                const isDisabled = false;
+                const isPremiumTab = ['lalkitab', 'nakshatra', 'transit'].includes(t.id);
+                const isUserPremium = user && (user.role === 'ADMIN' || user.role === 'ASTROLOGER');
+                const isDisabled = isPremiumTab && !isUserPremium;
                 return (
                   <button
                     key={t.id}
                     onClick={() => {
                       if (!isDisabled) {
                         switchTab(t.id, calcInput);
+                      } else {
+                        setPremiumPrompt(t.label);
                       }
                     }}
                     style={{
@@ -1736,7 +1741,7 @@ export const Home: React.FC = () => {
                         ? 'rgba(255, 255, 255, 0.35)' 
                         : activeTab === t.id ? 'var(--color-accent-gold)' : 'var(--color-text-muted)',
                       padding: '10px 16px',
-                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px',
@@ -1745,7 +1750,7 @@ export const Home: React.FC = () => {
                       transition: 'all 0.2s',
                       opacity: isDisabled ? 0.55 : 1
                     }}
-                    title={isDisabled ? "This feature is currently disabled" : ""}
+                    title={isDisabled ? "This feature is locked for free users" : ""}
                   >
                     {t.icon} {t.label} {isDisabled && <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>🔒</span>}
                   </button>
@@ -2694,6 +2699,52 @@ export const Home: React.FC = () => {
             </p>
           )}
         </section>
+      )}
+
+      {premiumPrompt && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(5, 6, 15, 0.9)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div className="cosmic-card" style={{
+            maxWidth: '500px',
+            width: '100%',
+            border: '1px solid var(--color-border-gold)',
+            padding: '32px',
+            textAlign: 'center',
+            background: 'radial-gradient(circle at center, rgba(212,175,55,0.08) 0%, rgba(5,6,15,0.95) 100%)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+            position: 'relative'
+          }}>
+            <Gem size={48} color="var(--color-accent-gold)" style={{ marginBottom: '16px', filter: 'drop-shadow(0 0 10px rgba(212,175,55,0.4))' }} />
+            <h3 style={{ fontSize: '1.5rem', color: 'var(--color-accent-gold-light)', marginBottom: '12px', fontFamily: 'var(--font-heading)' }}>
+              ✦ Premium Feature Locked
+            </h3>
+            <p style={{ color: 'var(--color-text-main)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '24px' }}>
+              The <strong>{premiumPrompt}</strong> report is a premium astrological feature. 
+              Please contact our certified astrologers or register a premium account to unlock detailed remedies and personalized advisors.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+              <button 
+                onClick={() => setPremiumPrompt(null)} 
+                className="btn-gold"
+                style={{ padding: '10px 24px', borderRadius: '20px', cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
