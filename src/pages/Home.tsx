@@ -1719,7 +1719,7 @@ export const Home: React.FC = () => {
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', borderBottom: '1px solid var(--color-border-glass)', marginBottom: '24px' }}>
               {TABS.map(t => {
-                const isDisabled = ['lalkitab', 'nakshatra', 'transit'].includes(t.id);
+                const isDisabled = false;
                 return (
                   <button
                     key={t.id}

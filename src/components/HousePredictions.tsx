@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 interface Planet {
   name: string;
@@ -147,7 +147,7 @@ const PREDICTIONS: Record<string, Record<number, string>> = {
   },
 };
 
-const REMEDIES: Record<string, Record<number, string[]>> = {
+export const REMEDIES: Record<string, Record<number, string[]>> = {
   "Sun (Surya)": {
     1: [
       "Chant Surya mantra 'Om Hraam Hreem Hraum Sah Suryaya Namah' 108 times every Sunday at sunrise to strengthen self-confidence and vitality.",
@@ -715,8 +715,6 @@ const PLANET_ICONS: Record<string, string> = {
 };
 
 export const HousePredictions: React.FC<HousePredictionsProps> = ({ planets, lagna }) => {
-  const [expanded, setExpanded] = useState<string | null>(null);
-
   const predictable = planets.filter(p => PREDICTIONS[p.name]?.[p.house]);
 
   return (
@@ -725,65 +723,42 @@ export const HousePredictions: React.FC<HousePredictionsProps> = ({ planets, lag
         House-Based Planetary Predictions
       </h3>
       <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '20px' }}>
-        Based on your {lagna} Lagna — click any planet to expand its reading.
+        Based on your {lagna} Lagna.
       </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {predictable.map(planet => {
           const key = `${planet.name}-${planet.house}`;
-          const isOpen = expanded === key;
           return (
             <div
               key={key}
               style={{
-                border: `1px solid ${isOpen ? 'var(--color-border-gold)' : 'var(--color-border-glass)'}`,
+                border: '1px solid var(--color-border-glass)',
                 borderRadius: '10px',
-                overflow: 'hidden',
-                background: isOpen ? 'rgba(212,175,55,0.04)' : 'rgba(255,255,255,0.02)',
-                transition: 'all 0.2s',
+                background: 'rgba(255,255,255,0.02)',
+                padding: '18px',
+                textAlign: 'left',
               }}
             >
-              <button
-                onClick={() => setExpanded(isOpen ? null : key)}
-                style={{
-                  width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-                  padding: '14px 18px', display: 'flex', justifyContent: 'space-between',
-                  alignItems: 'center', gap: '12px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '1.3rem', minWidth: '24px' }}>{PLANET_ICONS[planet.name] || '★'}</span>
-                  <div style={{ textAlign: 'left' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--color-accent-gold)', fontSize: '1rem' }}>
-                      {planet.name}
-                      {planet.retrograde && <span style={{ color: '#ff7043', fontSize: '0.8rem', marginLeft: '6px' }}>⟲ (R)</span>}
-                    </span>
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginLeft: '8px' }}>
-                      House {planet.house} — {HOUSE_TOPICS[planet.house]}
-                    </span>
-                  </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '1.3rem', minWidth: '24px' }}>{PLANET_ICONS[planet.name] || '★'}</span>
+                <div>
+                  <span style={{ fontWeight: 600, color: 'var(--color-accent-gold)', fontSize: '1.1rem' }}>
+                    {planet.name}
+                    {planet.retrograde && <span style={{ color: '#ff7043', fontSize: '0.8rem', marginLeft: '6px' }}>⟲ (R)</span>}
+                  </span>
+                  <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginLeft: '12px' }}>
+                    House {planet.house} — {HOUSE_TOPICS[planet.house]}
+                  </span>
                 </div>
-                <span style={{ color: 'var(--color-text-muted)', fontSize: '1.1rem' }}>{isOpen ? '▲' : '▼'}</span>
-              </button>
-              {isOpen && (
-                <div style={{ padding: '0 18px 16px 54px', color: 'var(--color-text-main)', lineHeight: '1.7', fontSize: '0.95rem' }}>
-                  {planet.retrograde && (
-                    <p style={{ color: '#ff7043', fontSize: '0.85rem', marginBottom: '8px', fontStyle: 'italic' }}>
-                      Retrograde: This planet's energy is internalized, requiring deeper reflection before its themes fully manifest externally.
-                    </p>
-                  )}
-                  {PREDICTIONS[planet.name][planet.house]}
-                  {REMEDIES[planet.name]?.[planet.house] && (
-                    <div style={{ marginTop: '12px', padding: '12px 16px', background: 'rgba(212, 175, 55, 0.05)', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.15)' }}>
-                      <p style={{ color: 'var(--color-accent-gold)', fontWeight: 600, fontSize: '0.9rem', marginBottom: '8px' }}>✦ Recommended Remedies</p>
-                      {REMEDIES[planet.name][planet.house].map((remedy: string, idx: number) => (
-                        <p key={idx} style={{ color: 'var(--color-text-main)', fontSize: '0.88rem', lineHeight: '1.6', margin: '4px 0', paddingLeft: '12px', borderLeft: '2px solid rgba(212, 175, 55, 0.3)' }}>
-                          {remedy}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              </div>
+              <div style={{ paddingLeft: '36px', color: 'var(--color-text-main)', lineHeight: '1.7', fontSize: '0.95rem' }}>
+                {planet.retrograde && (
+                  <p style={{ color: '#ff7043', fontSize: '0.85rem', marginBottom: '8px', fontStyle: 'italic' }}>
+                    Retrograde: This planet's energy is internalized, requiring deeper reflection before its themes fully manifest externally.
+                  </p>
+                )}
+                {PREDICTIONS[planet.name][planet.house]}
+              </div>
             </div>
           );
         })}
