@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { astrologyService, calculatorService, masterDataService } from '../services/api';
-import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll, Flame, RefreshCw, Calendar, ChevronRight } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { type RootState, loginSuccess, logout } from '../store';
+import { astrologyService, calculatorService, masterDataService, savedProfileService } from '../services/api';
+import { Compass, Moon, Sun, Search, ShieldAlert, Gem, Star, TrendingUp, Sparkles, Clock, Loader, Scroll, Flame, RefreshCw, Calendar, ChevronRight, User } from 'lucide-react';
 import { KundaliChart } from '../components/KundaliChart';
 import { NavamsaChart } from '../components/NavamsaChart';
 import { DashaBhuktiTable } from '../components/DashaBhuktiTable';
@@ -28,6 +30,56 @@ const ZODIAC_SIGNS = [
 ];
 
 export const Home: React.FC = () => {
+  const dispatch = useDispatch();
+  const { isAuthenticated, user, token } = useSelector((state: RootState) => state.auth);
+  const [savedProfiles, setSavedProfiles] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      savedProfileService.list()
+        .then(res => {
+          const list = res.data || [];
+          setSavedProfiles(list);
+          const defaultProfile = list.find(p => p.isDefault);
+          if (defaultProfile) {
+            setFormData(prev => ({
+              ...prev,
+              name: defaultProfile.fullName,
+              dob: defaultProfile.dateOfBirth,
+              tob: defaultProfile.timeOfBirth,
+              pob: defaultProfile.placeOfBirth,
+              lat: String(defaultProfile.latitude),
+              lon: String(defaultProfile.longitude),
+              tzone: String(defaultProfile.timezone),
+              gender: defaultProfile.gender
+            }));
+          }
+        })
+        .catch(err => console.error("Failed to load saved profiles", err));
+    } else {
+      setSavedProfiles([]);
+    }
+  }, [isAuthenticated, token]);
+
+  const handleProfileSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const profileId = Number(e.target.value);
+    if (!profileId) return;
+    const profile = savedProfiles.find(p => p.id === profileId);
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        name: profile.fullName,
+        dob: profile.dateOfBirth,
+        tob: profile.timeOfBirth,
+        pob: profile.placeOfBirth,
+        lat: String(profile.latitude),
+        lon: String(profile.longitude),
+        tzone: String(profile.timezone),
+        gender: profile.gender
+      }));
+    }
+  };
+
   // Wizard steps: 'concern' | 'birthForm' | 'results'
   const [wizardStep, setWizardStep] = useState<'concern' | 'birthForm' | 'results'>('birthForm');
   const [selectedConcern, setSelectedConcern] = useState<'career' | 'marriage' | 'finance' | 'health' | 'spirituality' | 'general' | null>('general');
@@ -433,6 +485,13 @@ export const Home: React.FC = () => {
         gender: formData.gender,
         style: chartStyle,
       });
+      
+      const token = res.data?.token;
+      const user = res.data?.user;
+      if (token && user) {
+        dispatch(loginSuccess({ token, user }));
+      }
+
       const finalData = res.data?.data ?? res.data;
       if (!finalData?.lagna) throw new Error('Invalid chart data received from server.');
       setChartResult(finalData);
@@ -662,21 +721,43 @@ export const Home: React.FC = () => {
                 VEDAASTRO
               </span>
             </div>
-            <a
-              href="/login"
-              className="btn-gold"
-              style={{
-                padding: '8px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.82rem',
-                borderRadius: '20px',
-                textDecoration: 'none'
-              }}
-            >
-              Login
-            </a>
+            {isAuthenticated && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <span style={{ color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <User size={16} /> Welcome, {user?.name || user?.phone || 'User'}
+                </span>
+                <a
+                  href="/profiles"
+                  className="btn-gold"
+                  style={{
+                    padding: '6px 14px',
+                    fontSize: '0.8rem',
+                    borderRadius: '20px',
+                    textDecoration: 'none',
+                    background: 'transparent',
+                    border: '1px solid var(--color-border-gold)',
+                    display: 'inline-block'
+                  }}
+                >
+                  Manage Profiles
+                </a>
+                <button
+                  onClick={() => dispatch(logout())}
+                  className="btn-gold"
+                  style={{
+                    padding: '6px 14px',
+                    fontSize: '0.8rem',
+                    borderRadius: '20px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#f87171',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
           
           <div style={{
@@ -836,6 +917,27 @@ export const Home: React.FC = () => {
               )}
 
               <form onSubmit={generateKundali} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Saved Profiles Dropdown (if logged in) */}
+                {isAuthenticated && savedProfiles.length > 0 && (
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold)', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.05em' }}>
+                      ✦ SELECT FROM SAVED PROFILES
+                    </label>
+                    <select
+                      onChange={handleProfileSelect}
+                      className="form-input"
+                      style={{ border: '1px solid var(--color-border-gold)', color: 'var(--color-accent-gold-light)' }}
+                    >
+                      <option value="">-- Choose Profile --</option>
+                      {savedProfiles.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.profileName} ({p.fullName})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Full Name */}
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label style={{ display: 'block', marginBottom: '6px', color: 'var(--color-accent-gold-light)', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.03em' }}>FULL NAME *</label>
@@ -1589,13 +1691,13 @@ export const Home: React.FC = () => {
               <div className="cosmic-card" style={{ padding: '24px', textAlign: 'center', border: '1px solid var(--color-border-glass)' }}>
                 <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: '8px' }}>Sun</span>
                 <p style={{ fontSize: '1.8rem', fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>
-                  {chartResult?.planets?.find((p: any) => p.name === 'Sun')?.sign || 'N/A'}
+                  {chartResult?.planets?.find((p: any) => p.name.includes('Sun'))?.sign || 'N/A'}
                 </p>
               </div>
               <div className="cosmic-card" style={{ padding: '24px', textAlign: 'center', border: '1px solid var(--color-border-glass)' }}>
                 <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: '8px' }}>Moon</span>
                 <p style={{ fontSize: '1.8rem', fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>
-                  {chartResult?.planets?.find((p: any) => p.name === 'Moon')?.sign || 'N/A'}
+                  {chartResult?.planets?.find((p: any) => p.name.includes('Moon'))?.sign || 'N/A'}
                 </p>
               </div>
               <div className="cosmic-card" style={{ padding: '24px', textAlign: 'center', border: '1px solid var(--color-border-glass)' }}>

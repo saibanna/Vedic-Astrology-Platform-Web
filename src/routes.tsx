@@ -49,6 +49,7 @@ import { Varshphal } from './pages/Varshphal';
 import { PlanetaryAspects } from './pages/PlanetaryAspects';
 import { NakshatraEncyclopedia } from './pages/NakshatraEncyclopedia';
 import { FestivalCalendar } from './pages/FestivalCalendar';
+import { ProfileManager } from './pages/ProfileManager';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
@@ -111,6 +112,7 @@ export const AppRoutes: React.FC = () => (
       {/* Protected */}
       <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
       <Route path="/consultation/:sessionId" element={<ProtectedRoute><Consultation /></ProtectedRoute>} />
+      <Route path="/profiles" element={<ProtectedRoute><ProfileManager /></ProtectedRoute>} />
       <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />

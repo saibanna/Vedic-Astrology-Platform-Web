@@ -108,6 +108,27 @@ export const astrologyService = {
     api.post('/api/v1/astrology/dasha', data),
 };
 
+export type SavedProfileInput = {
+  id?: number;
+  profileName: string;
+  fullName: string;
+  gender: string;
+  dateOfBirth: string; // YYYY-MM-DD
+  timeOfBirth: string; // HH:MM:SS
+  placeOfBirth: string;
+  latitude: number;
+  longitude: number;
+  timezone: number;
+  isDefault?: boolean;
+};
+
+export const savedProfileService = {
+  list: () => api.get<SavedProfileInput[]>('/api/v1/astrology/profiles'),
+  create: (data: SavedProfileInput) => api.post<SavedProfileInput>('/api/v1/astrology/profiles', data),
+  update: (id: number, data: SavedProfileInput) => api.put<SavedProfileInput>(`/api/v1/astrology/profiles/${id}`, data),
+  delete: (id: number) => api.delete(`/api/v1/astrology/profiles/${id}`),
+};
+
 export const remedyService = {
   getRemedies: (type?: string) => api.get(type ? `/api/v1/remedies?type=${type}` : '/api/v1/remedies'),
   bookRemedy: (data: any) => api.post('/api/v1/remedies/book', data),
