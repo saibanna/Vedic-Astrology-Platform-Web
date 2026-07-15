@@ -548,12 +548,14 @@ export const Home: React.FC = () => {
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(blob);
-      link.download = `Astrology_Report_${formData.name.replace(/\s+/g, '_') || 'Kundali'}.pdf`;
+      const nameStr = formData?.name || 'Kundali';
+      const cleanName = typeof nameStr === 'string' ? nameStr.trim().replace(/\s+/g, '_') : 'Kundali';
+      link.download = `Astrology_Report_${cleanName}.pdf`;
       link.click();
       window.URL.revokeObjectURL(link.href);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to download PDF report', err);
-      alert('Failed to download PDF report. Please try again.');
+      alert(`Failed to download PDF report. Error: ${err?.message || err}`);
     }
   };
 
